@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+  <title>FixIt — Fix Anything</title>
+  <meta name="description" content="AI-powered repair guide, emergency help, and nearby services worldwide. Fix anything in any language."/>
+  <meta name="theme-color" content="#E8521A"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="FixIt"/>
+  <!-- Open Graph -->
+  <meta property="og:title" content="FixIt — Fix Anything"/>
+  <meta property="og:description" content="AI-powered repair guide, emergency help, and nearby services worldwide."/>
+  <meta property="og:type" content="website"/>
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json"/>
+  <link rel="apple-touch-icon" href="/icon-192.png"/>
+  <link rel="icon" type="image/png" href="/icon-192.png"/>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body,#root{height:100%;overflow:hidden;background:#0A0908;
+      font-family:-apple-system,'SF Pro Display','Helvetica Neue',sans-serif;
+      -webkit-tap-highlight-color:transparent;color:#F0EDE8}
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>
