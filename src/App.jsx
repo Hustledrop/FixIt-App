@@ -1334,11 +1334,12 @@ export default function App() {
                 </div>
               </div>
             ))}
+            <div onClick={()=>window.open(mu(`${catMapsQ[mapCat]||catLabels[mapCat]}`), '_blank', 'noopener,noreferrer')} style={{...s.card,textAlign:'center',cursor:'pointer',marginTop:4,border:`1px solid rgba(26,95,232,0.2)`,background:'rgba(26,95,232,0.04)'}}>
+              <div style={{fontSize:'0.88rem',fontWeight:700,marginBottom:3}}>🗺️ {t('openGoogleMaps')}</div>
+              <div style={{fontSize:'0.72rem',color:C.m}}>{t('allResultsMap')}</div>
+            </div>
           </>}
-          <div onClick={()=>window.open(mu(`${catMapsQ[mapCat]||catLabels[mapCat]}`), '_blank', 'noopener,noreferrer')} style={{...s.card,textAlign:'center',cursor:'pointer',marginTop:4}}>
-            <div style={{fontSize:'0.88rem',fontWeight:700,marginBottom:3}}>{t('openGoogleMaps')}</div>
-            <div style={{fontSize:'0.72rem',color:C.m}}>{t('allResultsMap')}</div>
-          </div>
+
         </Scroll>
         <NavBar screen={screen} t={t} goto={goto}/>
         <style>{CSS}</style>
