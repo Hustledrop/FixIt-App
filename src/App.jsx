@@ -177,7 +177,7 @@ export default function App() {
   const pwaPrompt  = useRef(null);
 
   const { lat, lng, city, country, locStatus, requestLocation, getCC } = useLocation();
-  const { result: aiResult, loading: aiLoading, error: aiError, diagnose } = useAI();
+  const { result: aiResult, loading: aiLoading, error: aiError, diagnose, reset: aiReset } = useAI();
   const { bizs, loading: bizLoading, error: bizError, fetchBiz } = useNearby();
 
   const t   = useCallback(k => tx(lang, k), [lang]);
@@ -468,6 +468,39 @@ export default function App() {
   // NEVER uses old vInput/pInput from a previous session.
   // Clean AI-generated part names into real buyable product queries
   // Removes: "ggf.", "falls defekt", "optional", parenthetical conditions, etc.
+  // Extract a searchable product name from AI noise phrases.
+  // Handles cases like "Kein Ersatzteil nötig – nur Ladegerät erforderlich" → "Ladegerät"
+  // or "Keine Teile nötig – nur Multimeter" → "Multimeter"
+  function extractSearchableProduct(raw, category) {
+    if (!raw) return '';
+    const s = raw.trim();
+
+    // Pattern: "Kein ... – nur X erforderlich/benötigt" → extract X
+    const nurMatch = s.match(/nur\s+(.+?)(?:\s+(?:erforderlich|benötigt|needed|required))?[–\-]?\s*$/i) ||
+                     s.match(/only\s+(?:a\s+|an\s+)?(.+?)(?:\s+(?:required|needed))?$/i);
+    if (nurMatch) {
+      const extracted = nurMatch[1].trim().replace(/\s+(erforderlich|benötigt|needed|required)$/i, '').trim();
+      if (extracted.length > 1) return extracted;
+    }
+
+    // Pattern: "X oder Y" → take first item only
+    const oderMatch = s.match(/^([^–\-,]+?)\s+(?:oder|or)\s+/i);
+    if (oderMatch && !s.toLowerCase().startsWith('kein') && !s.toLowerCase().startsWith('no ')) {
+      return oderMatch[1].trim();
+    }
+
+    // Pattern: "Kein Ersatzteil nötig..." whole sentence starting with negation → return empty
+    // so the caller falls back to problem context
+    if (/^(kein|keine|no\s+replacement|no\s+part)/i.test(s)) {
+      // Try to find tool/product after "nur" / "only"
+      const fallback = s.match(/(?:nur|only)\s+(?:ein\s+|eine\s+|a\s+|an\s+)?([A-ZÄÖÜ][a-zäöüA-ZÄÖÜ0-9\-]+)/);
+      if (fallback) return fallback[1];
+      return ''; // signal: no part, use context
+    }
+
+    return ''; // no special pattern matched — let cleanProductSearchQuery handle it
+  }
+
   // Clean AI-generated part name into a real buyable search query.
   // Call signature: (partName, _unused, category, brandOrModel, _unused2)
   // All callers: cleanProductSearchQuery(part, '', category, brand, '')
@@ -483,10 +516,11 @@ export default function App() {
     q = q.replace(/[\d.,]+\s*€/g, '');
     q = q.replace(/\$\s*[\d.,]+/g, '');
 
-    // 3. Truncate at first explanatory connector — keep only the product name part
+    // 3. Truncate at connectors — keep only the primary product name
     // "WLAN-Repeater bei schlechter Abdeckung" → "WLAN-Repeater"
-    // "Antriebsriemen falls abgenutzt" → already handled by leadingRe on next pass
-    q = q.replace(/\s+(bei\s+\w|\bfalls\b|\bwenn\b|\bfür\b|\boder\b\s+\w+\s+\w+|\bif\b\s|\bfor\b\s|\bwith\b\s).*/i, '');
+    // "Neemöl oder pflanzliches Insektizid" → "Neemöl"
+    q = q.replace(/\s+(?:oder|or)\s+.*/i, '');  // strip alternatives after "oder/or"
+    q = q.replace(/\s+(bei\s+\w|\bfalls\b|\bwenn\b|\bfür\b|\bif\b\s|\bfor\b\s|\bwith\b\s).*/i, '');
 
     // 4. Strip leading filler words — loop until stable (Ggf. neuer X needs 2 passes)
     const leadingRe = /^(ggf\.?\s*|evtl\.?\s*|optional[:,]?\s*|falls\s+\S+,?\s*|if\s+broken[:,]?\s*|maybe[:,]?\s*|bei\s+Bedarf[:,]?\s*|neue[nrms]?\s+(?=\S)|je\s+nach\s+\S+\s*|possibly[:,]?\s*)/i;
@@ -501,7 +535,10 @@ export default function App() {
     q = q.replace(/\bErsatz[-\s]/gi, '');
     q = q.replace(/\bReplacement\b\s*/gi, '');
 
-    // 6. Collapse multiple spaces
+    // 6a. Strip everything after em-dash or long dash (explanatory suffix)
+    q = q.replace(/\s*[–—].*$/, '').trim();
+
+    // 6b. Collapse multiple spaces
     q = q.replace(/\s{2,}/g, ' ').trim();
 
     // Fallback if everything was stripped
@@ -577,14 +614,20 @@ export default function App() {
     const prob  = (problem || '').trim();
 
     if (parts.length > 0) {
-      // Clean first part — no brand injection (avoids Dell+Razer mixing)
+      // First try smart extraction (handles "Kein Ersatzteil – nur Ladegerät" cases)
+      const smart = extractSearchableProduct(parts[0], category);
+      if (smart && smart.length > 1) {
+        const cleaned = cleanProductSearchQuery(smart, '', category, '', '');
+        if (cleaned && cleaned.length > 1) return cleaned;
+      }
+      // Fallback: clean the raw part name
       const first = cleanProductSearchQuery(parts[0], '', category, '', '');
       if (first && first.length > 2) return first;
     }
     // Convert symptom text to product query if possible
     const symQuery = symptomToProducts(prob, category, lang);
     if (symQuery) return symQuery;
-    // Last fallback: cleaned problem text (but avoid pure symptom sentences as shop query)
+    // Last fallback: cleaned problem text
     if (prob && prob.length < 40) return cleanProductSearchQuery(prob, '', category, '', '');
     return category || 'repair part';
   }
@@ -683,7 +726,7 @@ export default function App() {
   // ── HOME ─────────────────────────────────────────────────────────────────────
   if (screen === 'home') return (
     <Screen>
-      {showLP && <LangPicker lang={lang} setLang={lc=>{setLang(lc);setShowLP(false);}} setShowLP={setShowLP} LANGS={LANGS} t={t}/>}
+      {showLP && <LangPicker lang={lang} setLang={lc=>{setLang(lc);setShowLP(false);aiReset();setPResults(null);setPInput('');setVInput('');}} setShowLP={setShowLP} LANGS={LANGS} t={t}/>}
       {/* Offline banner */}
       {!isOnline && <div style={{background:'rgba(232,178,26,0.15)',borderBottom:'1px solid rgba(232,178,26,0.3)',padding:'8px 16px',fontSize:'0.72rem',color:C.y,textAlign:'center',flexShrink:0}}>⚠️ Offline mode — emergency info still available</div>}
       {/* PWA install banner */}
@@ -768,7 +811,7 @@ export default function App() {
   // ── FIX NOW ──────────────────────────────────────────────────────────────────
   if (screen === 'fix-now') return (
     <Screen>
-      {showLP && <LangPicker lang={lang} setLang={lc=>{setLang(lc);setShowLP(false);}} setShowLP={setShowLP} LANGS={LANGS} t={t}/>}
+      {showLP && <LangPicker lang={lang} setLang={lc=>{setLang(lc);setShowLP(false);aiReset();setPResults(null);setPInput('');setVInput('');}} setShowLP={setShowLP} LANGS={LANGS} t={t}/>}
       <div style={{padding:'52px 20px 14px',borderBottom:`1px solid ${C.b}`,flexShrink:0}}>
           <BackBtn/>
         <div style={{fontSize:'1.35rem',fontWeight:800,letterSpacing:'-0.02em',marginBottom:4}}>{t('fixItNow')}</div>
@@ -820,14 +863,40 @@ export default function App() {
     const pct = r?.confidence||0;
     const col = r?.callPro?C.r:pct<60?C.y:C.g;
     const ci  = 170, off = ci-(ci*pct/100);
-    const proQ = r?.proSearchQuery||`${curFix} repair service`;
+    // Normalize AI-generated proSearchQuery to short, local-intent friendly term
+    function normalizeProSearch(raw, cat, isDE) {
+      if (!raw) return isDE ? 'Werkstatt in der Nähe' : 'repair service near me';
+      let q = raw.trim();
+      // Strip "oder X" alternatives
+      q = q.replace(/\s+(?:oder|or)\s+.*/i, '');
+      // Strip "in meiner Nähe" / "near me" if AI added it (we add it via Google Maps)
+      q = q.replace(/\s+in\s+meiner\s+Nähe/gi, '').replace(/\s+near\s+me/gi, '').trim();
+      // Strip trailing filler
+      q = q.replace(/\s*[–—].*$/, '').trim();
+      // If still too long (>40 chars), use category default
+      if (q.length > 40) {
+        const defaults = {
+          car: isDE?'Autowerkstatt':'car repair shop',
+          bike: isDE?'Fahrradwerkstatt':'bike repair shop',
+          tech: isDE?'Elektronik Reparatur':'electronics repair',
+          appliances: isDE?'Gerätereparatur':'appliance repair',
+          home: isDE?'Handwerker Klempner':'handyman plumber',
+          garden: isDE?'Gärtner Gartencenter':'garden center',
+          pets: isDE?'Tierarzt':'veterinarian',
+        };
+        q = defaults[cat] || (isDE?'Fachmann':'repair service');
+      }
+      return q;
+    }
+    const isDE = lang === 'de';
+    const proQ = normalizeProSearch(r?.proSearchQuery, curFix, isDE)||`${curFix} repair service`;
     const ct  = catTerms(curFix, lang);  // category-aware terminology
 
 
 
     return (
       <Screen>
-        {showLP && <LangPicker lang={lang} setLang={lc=>{setLang(lc);setShowLP(false);}} setShowLP={setShowLP} LANGS={LANGS} t={t}/>}
+        {showLP && <LangPicker lang={lang} setLang={lc=>{setLang(lc);setShowLP(false);aiReset();setPResults(null);setPInput('');setVInput('');}} setShowLP={setShowLP} LANGS={LANGS} t={t}/>}
         <div style={{padding:'52px 20px 14px',background:'linear-gradient(160deg,#001a0d,#0A0908 60%)',borderBottom:`1px solid ${C.b}`,flexShrink:0}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
             <BackBtn/>
@@ -1027,7 +1096,7 @@ export default function App() {
   // ── EMERGENCY ────────────────────────────────────────────────────────────────
   if (screen === 'emergency') return (
     <Screen bg="#060000">
-      {showLP && <LangPicker lang={lang} setLang={lc=>{setLang(lc);setShowLP(false);}} setShowLP={setShowLP} LANGS={LANGS} t={t}/>}
+      {showLP && <LangPicker lang={lang} setLang={lc=>{setLang(lc);setShowLP(false);aiReset();setPResults(null);setPInput('');setVInput('');}} setShowLP={setShowLP} LANGS={LANGS} t={t}/>}
       {!isOnline && <div style={{background:'rgba(232,178,26,0.1)',borderBottom:'1px solid rgba(232,178,26,0.2)',padding:'8px 16px',fontSize:'0.72rem',color:C.y,textAlign:'center',flexShrink:0}}>⚠️ Offline mode — emergency numbers still available</div>}
       <div style={{padding:'52px 20px 14px',background:'linear-gradient(160deg,rgba(214,59,47,0.1),transparent 60%)',flexShrink:0}}>
         <div style={{display:'flex',alignItems:'center',gap:6,fontSize:'0.62rem',fontWeight:700,color:C.r,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:8}}>
@@ -1088,7 +1157,7 @@ export default function App() {
     );
     return (
       <Screen bg="#060000">
-        {showLP && <LangPicker lang={lang} setLang={lc=>{setLang(lc);setShowLP(false);}} setShowLP={setShowLP} LANGS={LANGS} t={t}/>}
+        {showLP && <LangPicker lang={lang} setLang={lc=>{setLang(lc);setShowLP(false);aiReset();setPResults(null);setPInput('');setVInput('');}} setShowLP={setShowLP} LANGS={LANGS} t={t}/>}
         <div style={{padding:'52px 20px 14px',borderBottom:'1px solid rgba(255,255,255,0.06)',flexShrink:0}}>
           <BackBtn onPress={()=>goto('emergency')}/>
           <div style={{display:'flex',alignItems:'center',gap:12}}>
@@ -1138,18 +1207,23 @@ export default function App() {
   if (screen === 'nearby') {
     const catLabels={garage:t('catGarage'),parts:t('catParts'),tyres:t('catTyres'),petrol:t('catPetrol'),hardware:t('catHardware'),vet:t('catVet'),it:t('catIT')};
     // Category-specific Google Maps search terms (correct service type, not product)
+    // catMapsQ: short, intent-friendly local service search terms per language
+    const _isDE = lang === 'de', _isTR = lang === 'tr',
+          _isHR = lang === 'hr' || lang === 'sr',
+          _isMK = lang === 'mk', _isFR = lang === 'fr',
+          _isES = lang === 'es', _isIT = lang === 'it';
     const catMapsQ={
-      garage: lang==='de'?'Kfz Werkstatt':'car mechanic',
-      parts:  lang==='de'?'Autoteile':'auto parts store',
-      tyres:  lang==='de'?'Reifenservice':'tyre service',
-      petrol: lang==='de'?'Tankstelle':'petrol station',
-      hardware: lang==='de'?'Baumarkt Eisenwarenhandlung':'hardware store',
-      vet:    lang==='de'?'Tierarzt Tierklinik':'veterinarian',
-      it:     lang==='de'?'Computer Reparatur Elektronik':'computer repair electronics',
+      garage:   _isDE?'Autowerkstatt in der Nähe':_isTR?'Araba tamircisi yakınımda':_isHR?'Auto servis u blizini':_isMK?'Автосервис во близина':_isFR?'Garage automobile près de moi':_isES?'Taller mecánico cercano':_isIT?'Officina auto vicino':' car mechanic near me',
+      parts:    _isDE?'Autoteile in der Nähe':_isTR?'Oto yedek parça yakınımda':_isHR?'Auto dijelovi u blizini':_isMK?'Авто делови во близина':'auto parts store near me',
+      tyres:    _isDE?'Reifenservice in der Nähe':_isTR?'Lastik servisi yakınımda':_isHR?'Servis za gume u blizini':_isMK?'Сервис за гуми во близина':'tyre service near me',
+      petrol:   _isDE?'Tankstelle in der Nähe':_isTR?'Benzin istasyonu yakınımda':_isHR?'Benzinska stanica u blizini':_isMK?'Бензинска станица во близина':'petrol station near me',
+      hardware: _isDE?'Baumarkt in der Nähe':_isTR?'Hırdavatçı yakınımda':_isHR?'Željezarija u blizini':_isMK?'Железарија во близина':'hardware store near me',
+      vet:      _isDE?'Tierarzt in der Nähe':_isTR?'Veteriner yakınımda':_isHR?'Veterinar u blizini':_isMK?'Ветеринар во близина':'veterinarian near me',
+      it:       _isDE?'Computer Reparatur in der Nähe':_isTR?'Bilgisayar tamiri yakınımda':_isHR?'Servis računala u blizini':_isMK?'Сервис компјутери во близина':'computer repair near me',
     };
     return (
       <Screen>
-        {showLP && <LangPicker lang={lang} setLang={lc=>{setLang(lc);setShowLP(false);}} setShowLP={setShowLP} LANGS={LANGS} t={t}/>}
+        {showLP && <LangPicker lang={lang} setLang={lc=>{setLang(lc);setShowLP(false);aiReset();setPResults(null);setPInput('');setVInput('');}} setShowLP={setShowLP} LANGS={LANGS} t={t}/>}
         <div style={{padding:'52px 20px 12px',borderBottom:`1px solid ${C.b}`,flexShrink:0}}>
           <BackBtn/>
           <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
@@ -1282,7 +1356,7 @@ export default function App() {
                 vType==='pets'?(lang==='de'?'Tierart, z.B. Hund, Katze, Vogel':'Pet type, e.g. dog, cat, bird'):t('vehicleInputDefault');
     return (
       <Screen>
-        {showLP && <LangPicker lang={lang} setLang={lc=>{setLang(lc);setShowLP(false);}} setShowLP={setShowLP} LANGS={LANGS} t={t}/>}
+        {showLP && <LangPicker lang={lang} setLang={lc=>{setLang(lc);setShowLP(false);aiReset();setPResults(null);setPInput('');setVInput('');}} setShowLP={setShowLP} LANGS={LANGS} t={t}/>}
         <div style={{padding:'52px 20px 14px',borderBottom:`1px solid ${C.b}`,flexShrink:0}}>
           <BackBtn/>
           <div style={{fontSize:'1.35rem',fontWeight:800,letterSpacing:'-0.02em',marginBottom:4}}>

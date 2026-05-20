@@ -97,9 +97,11 @@ export function useNearby() {
     if (!lat || !lng) { setError('loc'); return; }
     const thisReq = ++reqId.current;
 
+    // Reset all state atomically for this request
     setLoading(true);
     setError(null);
     setBizs([]);
+    // Note: reqId already incremented above — stale responses are ignored
 
     const def   = MAP_CATS[cat] || MAP_CATS.garage;
     const d     = 0.025;
@@ -112,9 +114,12 @@ export function useNearby() {
       if (thisReq !== reqId.current) return;
       setBizs(results);
       setError(results.length === 0 ? 'empty' : null);
-    } catch (_) {
+    } catch (e) {
       if (thisReq !== reqId.current) return;
-      setError('error'); // triggers Google Maps fallback button in UI
+      // Only set error state once loading is cleared (prevents brief overlap)
+      setLoading(false);
+      setError('error');
+      return; // skip finally setLoading
     } finally {
       if (thisReq === reqId.current) setLoading(false);
     }

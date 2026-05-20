@@ -32,19 +32,27 @@ export function useAI() {
   const diagnose = useCallback(async ({ problem, photoB64, photoMime, category, lang, countryName }) => {
     setLoading(true);
     setError(null);
-    // Do NOT reset result — keeps previous result visible during retry
+    setResult(null); // clear stale result so no old language leaks
 
     const langEntry  = LANGS[lang] || LANGS.en;
     const langName   = langEntry.n || 'English';
-    // Explicit script direction for Cyrillic/Latin disambiguation
+    // Every language gets an explicit "respond ENTIRELY in X" instruction
+    // This prevents the AI from defaulting to German or English
     const langFull =
-      lang === 'mk' ? `Macedonian (Македонски — respond using Cyrillic script)` :
-      lang === 'sr' ? `Serbian (Srpski — respond using Latin script)` :
-      lang === 'hr' ? `Croatian (Hrvatski — respond using Latin script)` :
-      lang === 'bg' ? `Bulgarian (Български — respond using Cyrillic script)` :
-      lang === 'ru' ? `Russian (Русский — respond using Cyrillic script)` :
-      lang === 'uk' ? `Ukrainian (Українська — respond using Cyrillic script)` :
-      langName;
+      lang === 'mk' ? `Macedonian (Македонски) — respond ENTIRELY in Macedonian, use Cyrillic script` :
+      lang === 'sr' ? `Serbian (Srpski) — respond ENTIRELY in Serbian, use Latin script` :
+      lang === 'hr' ? `Croatian (Hrvatski) — respond ENTIRELY in Croatian, use Latin script` :
+      lang === 'bg' ? `Bulgarian (Български) — respond ENTIRELY in Bulgarian, use Cyrillic script` :
+      lang === 'ru' ? `Russian (Русский) — respond ENTIRELY in Russian, use Cyrillic script` :
+      lang === 'uk' ? `Ukrainian (Українська) — respond ENTIRELY in Ukrainian, use Cyrillic script` :
+      lang === 'tr' ? `Turkish (Türkçe) — respond ENTIRELY in Turkish, do NOT use German or English` :
+      lang === 'de' ? `German (Deutsch) — respond ENTIRELY in German` :
+      lang === 'fr' ? `French (Français) — respond ENTIRELY in French` :
+      lang === 'es' ? `Spanish (Español) — respond ENTIRELY in Spanish` :
+      lang === 'it' ? `Italian (Italiano) — respond ENTIRELY in Italian` :
+      lang === 'pl' ? `Polish (Polski) — respond ENTIRELY in Polish` :
+      lang === 'en' ? `English — respond ENTIRELY in English` :
+      `${langName} — respond ENTIRELY in ${langName}, do NOT use German or English`;
 
     const payload = {
       problem:      (problem || '').trim(),
@@ -67,10 +75,10 @@ export function useAI() {
     });
 
     // Retry with exponential backoff: 1.5s → 3s
-    const DELAYS = [2000]; // one retry after 2s for cold-start recovery
+    const DELAYS = [1500, 3000]; // two retries with backoff
     let lastErr = null;
 
-    for (let attempt = 1; attempt <= 2; attempt++) {
+    for (let attempt = 1; attempt <= 3; attempt++) {
       try {
         const data = await callAPI(payload);
         console.log(`[FixIt] ✓ Success (attempt ${attempt}) in ${Date.now()-_t0}ms, confidence:`, data.confidence, 'category:', payload.category);
@@ -93,7 +101,7 @@ export function useAI() {
           break;
         }
 
-        if (attempt < 2) {
+        if (attempt < 3) {
           const delay = DELAYS[Math.min(attempt - 1, DELAYS.length - 1)];
           console.log(`[FixIt] Waiting ${delay}ms before retry ${attempt + 1}…`);
           await new Promise(r => setTimeout(r, delay));
