@@ -251,10 +251,10 @@ const STORES = {
   bike: {
     DE:[
       {n:"Bike24 🚲",u:(q)=>`https://www.bike24.de/search?q=${encodeURIComponent(q)}`,badge:"TOP"},
-      {n:"Fahrrad XXL 🏪",u:(q)=>`https://www.fahrrad-xxl.de/search?q=${encodeURIComponent(q)}`},
+      {n:"Fahrrad XXL 🏪",u:(q)=>`https://www.fahrrad-xxl.de/search/?query=${encodeURIComponent(q)}`},
       {n:"ROSE Bikes 🌹",u:(q)=>`https://www.rosebikes.de/search?q=${encodeURIComponent(q)}`},
-      {n:"Bike-Discount 💰",u:(q)=>`https://www.bike-discount.de/search?q=${encodeURIComponent(q)}`},
-      {n:"Decathlon 🏃",u:(q)=>`https://www.decathlon.de/search?Ntt=${encodeURIComponent(q)}`},
+      {n:"Bike-Discount 💰",u:(q)=>`https://www.bike-discount.de/catalogsearch/result/?q=${encodeURIComponent(q)}`},
+      {n:"Decathlon 🏃",u:(q)=>`https://www.decathlon.de/search?Ntt=${encodeURIComponent(q.split(' ').slice(-2).join(' '))}`},
       {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?k=${encodeURIComponent(q)}`},
       {n:"eBay.de 🛒",u:(q)=>`https://www.ebay.de/sch/i.html?_nkw=${encodeURIComponent(q)}&_sacat=0`},
     ],

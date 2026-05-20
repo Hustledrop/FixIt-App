@@ -91,37 +91,41 @@ function catTerms(cat, lang) {
     parts:     de?'Empfohlene Gartenprodukte':fr?'Produits de jardin':es?'Productos de jardín':it?'Prodotti da giardino':mk?'Градинарски производи':(sr||hr)?'Vrtni proizvodi':'Garden Products',
     steps:     de?'Pflegeschritte':fr?'Étapes de soin':es?'Pasos de cuidado':it?'Passi di cura':mk?'Чекори за нега':(sr||hr)?'Koraci nege':'Care Steps',
     fixedQ:    de?'Hat das geholfen?':fr?'Cela a-t-il aidé?':es?'¿Ha ayudado?':it?'Ha aiutato?':mk?'Дали помогна?':(sr||hr)?'Da li je pomoglo?':'Did this help?',
-    fixedY:    de?'✅ Ja, Problem gelöst!':'✅ Yes, sorted!',
-    fixedN:    de?'❌ Noch nicht gelöst':'❌ Still not solved',
-    proBtn:    de?'Gärtner finden':'Find a Gardener',
-    partsBtn:  de?'Gartenprodukte suchen':'Find Garden Products',
+    fixedY:    de?'✅ Ja, Problem gelöst!':lang==='tr'?'✅ Evet, çözüldü!':lang==='pl'?'✅ Tak, rozwiązane!':'✅ Yes, sorted!',
+    fixedN:    de?'❌ Noch nicht gelöst':lang==='tr'?'❌ Hâlâ çözülmedi':lang==='pl'?'❌ Nadal nie rozwiązane':'❌ Still not solved',
+    proBtn:    de?'Gärtner finden':lang==='tr'?'Bahçıvan bul':lang==='pl'?'Znajdź ogrodnika':'Find a Gardener',
+    partsBtn:  de?'Gartenprodukte suchen':lang==='tr'?'Bahçe ürünleri bul':lang==='pl'?'Znajdź produkty ogrodowe':'Find Garden Products',
     loading:   de?['Gartenproblem wird analysiert…','Ursache wird ermittelt…','Pflegeschritte werden erstellt…','Gartenprodukte werden gesucht…']:
                ['Analyzing garden problem…','Identifying the cause…','Preparing care steps…','Finding garden products…'],
   };
-  if (isBike) return {
-    tools:     de?'Benötigte Werkzeuge':'Tools Needed',
-    parts:     de?'Fahrradteile und Zubehör':'Bike Parts & Accessories',
-    steps:     de?'Reparaturschritte':'Repair Steps',
-    fixedQ:    de?'Wurde das Problem behoben?':'Was the problem fixed?',
-    fixedY:    de?'✅ Ja, funktioniert!':'✅ Yes, working!',
-    fixedN:    de?'❌ Noch nicht behoben':'❌ Not fixed yet',
-    proBtn:    de?'Fahrradwerkstatt finden':'Find Bike Shop',
-    partsBtn:  de?'Fahrradteile suchen':'Find Bike Parts',
+  if (isBike) {
+    const tr = lang==='tr', pl = lang==='pl';
+    return {
+    tools:     de?'Benötigte Werkzeuge':tr?'Gerekli araçlar':pl?'Potrzebne narzędzia':'Tools Needed',
+    parts:     de?'Fahrradteile und Zubehör':tr?'Bisiklet parçaları':pl?'Części rowerowe':'Bike Parts & Accessories',
+    steps:     de?'Reparaturschritte':tr?'Onarım adımları':pl?'Kroki naprawy':'Repair Steps',
+    fixedQ:    de?'Wurde das Problem behoben?':tr?'Sorun çözüldü mü?':pl?'Czy problem został rozwiązany?':'Was the problem fixed?',
+    fixedY:    de?'✅ Ja, funktioniert!':tr?'✅ Evet, çalışıyor!':pl?'✅ Tak, działa!':'✅ Yes, working!',
+    fixedN:    de?'❌ Noch nicht behoben':tr?'❌ Hâlâ bozuk':pl?'❌ Nadal zepsute':'❌ Not fixed yet',
+    proBtn:    de?'Fahrradwerkstatt finden':tr?'Bisiklet tamircisi bul':pl?'Znajdź serwis rowerowy':'Find Bike Shop',
+    partsBtn:  de?'Fahrradteile suchen':tr?'Bisiklet parçası bul':pl?'Znajdź części rowerowe':'Find Bike Parts',
     loading:   de?['Fahrradproblem wird analysiert…','Ursache wird ermittelt…','Reparaturschritte werden erstellt…','Fahrradteile werden gesucht…']:
+               tr?['Bisiklet sorunu analiz ediliyor…','Neden araştırılıyor…','Onarım adımları hazırlanıyor…','Bisiklet parçaları aranıyor…']:
+               pl?['Analiza problemu rowerowego…','Identyfikacja przyczyny…','Przygotowanie kroków naprawy…','Szukanie części rowerowych…']:
                ['Analyzing bike issue…','Identifying the cause…','Preparing repair steps…','Finding bike parts…'],
-  };
+  };}
   // Default: repair (home, appliances, car, tech)
   return {
-    tools:     de?'Benötigte Werkzeuge':fr?'Outils nécessaires':es?'Herramientas necesarias':it?'Strumenti necessari':mk?'Потребни алатки':(sr||hr)?'Potrebni alati':'Tools Needed',
-    parts:     de?'Benötigte Teile':fr?'Pièces nécessaires':es?'Piezas necesarias':it?'Parti necessarie':mk?'Потребни делови':(sr||hr)?'Potrebni delovi':'Parts Needed',
-    steps:     de?'Reparaturschritte':fr?'Étapes de réparation':es?'Pasos de reparación':it?'Passi di riparazione':mk?'Чекори за поправка':(sr||hr)?'Koraci popravke':'Repair Steps',
+    tools:     de?'Benötigte Werkzeuge':fr?'Outils nécessaires':es?'Herramientas necesarias':it?'Strumenti necessari':mk?'Потребни алатки':(sr||hr)?'Potrebni alati':lang==='tr'?'Gerekli araçlar':lang==='pl'?'Potrzebne narzędzia':'Tools Needed',
+    parts:     de?'Benötigte Teile':fr?'Pièces nécessaires':es?'Piezas necesarias':it?'Parti necessarie':mk?'Потребни делови':(sr||hr)?'Potrebni delovi':lang==='tr'?'Gerekli parçalar':lang==='pl'?'Potrzebne części':'Parts Needed',
+    steps:     de?'Reparaturschritte':fr?'Étapes de réparation':es?'Pasos de reparación':it?'Passi di riparazione':mk?'Чекори за поправка':(sr||hr)?'Koraci popravke':lang==='tr'?'Onarım adımları':lang==='pl'?'Kroki naprawy':'Repair Steps',
     fixedQ:    de?'Hat das geholfen?':fr?'Cela a-t-il résolu?':es?'¿Se resolvió?':it?'Il problema è risolto?':mk?'Дали се поправи?':(sr||hr)?'Da li je popravljeno?':'Did this fix it?',
-    fixedY:    de?'✅ Ja, behoben!':fr?'✅ Oui, résolu!':es?'✅ Sí, solucionado!':it?'✅ Sì, risolto!':mk?'✅ Да, поправено!':(sr||hr)?'✅ Da, popravljeno!':'✅ Yes, fixed!',
-    fixedN:    de?'❌ Noch defekt':fr?'❌ Toujours en panne':es?'❌ Aún defectuoso':it?'❌ Ancora rotto':mk?'❌ Сè уште дефектно':(sr||hr)?'❌ Još uvek pokvareno':'❌ Still broken',
-    proBtn:    de?'Fachmann finden':fr?'Trouver un pro':es?'Buscar profesional':it?'Trova professionista':mk?'Најди стручњак':(sr||hr)?'Nađi stručnjaka':'Find Professional',
-    partsBtn:  cat==='car'?(de?'Autoteile finden':'Find Auto Parts'):
-               cat==='tech'?(de?'Ersatzteile finden':'Find Spare Parts'):
-               cat==='appliances'?(de?'Ersatzteile finden':'Find Spare Parts'):
+    fixedY:    de?'✅ Ja, behoben!':fr?'✅ Oui, résolu!':es?'✅ Sí, solucionado!':it?'✅ Sì, risolto!':mk?'✅ Да, поправено!':(sr||hr)?'✅ Da, popravljeno!':lang==='tr'?'✅ Evet, çözüldü!':lang==='pl'?'✅ Tak, naprawione!':'✅ Yes, fixed!',
+    fixedN:    de?'❌ Noch defekt':fr?'❌ Toujours en panne':es?'❌ Aún defectuoso':it?'❌ Ancora rotto':mk?'❌ Сè уште дефектно':(sr||hr)?'❌ Još uvek pokvareno':lang==='tr'?'❌ Hâlâ bozuk':lang==='pl'?'❌ Nadal zepsute':'❌ Still broken',
+    proBtn:    de?'Fachmann finden':fr?'Trouver un pro':es?'Buscar profesional':it?'Trova professionista':mk?'Најди стручњак':(sr||hr)?'Nađi stručnjaka':lang==='tr'?'Usta bul':lang==='pl'?'Znajdź fachowca':'Find Professional',
+    partsBtn:  cat==='car'?(de?'Autoteile finden':lang==='tr'?'Araba parçası bul':lang==='pl'?'Znajdź części do auta':'Find Auto Parts'):
+             cat==='tech'?(de?'Ersatzteile finden':lang==='tr'?'Yedek parça bul':lang==='pl'?'Znajdź części zamienne':'Find Spare Parts'):
+             cat==='appliances'?(de?'Ersatzteile finden':lang==='tr'?'Yedek parça bul':lang==='pl'?'Znajdź części zamienne':'Find Spare Parts'):
                (de?'Teile finden':'Find Parts'),
     loading:   de?['Problem wird analysiert…','Ursache wird ermittelt…','Reparaturschritte werden erstellt…','Teile und Werkzeuge werden gesucht…']:
                fr?['Analyse du problème…','Identification de la cause…','Préparation des étapes…','Recherche des pièces…']:
@@ -129,6 +133,8 @@ function catTerms(cat, lang) {
                it?['Analisi del problema…','Identificazione della causa…','Preparazione dei passi…','Ricerca dei ricambi…']:
                mk?['Анализа на проблемот…','Откривање на причината…','Подготовка на чекорите…','Барање делови…']:
                (sr||hr)?['Analiza problema…','Otkrivanje uzroka…','Priprema koraka…','Traženje delova…']:
+               lang==='tr'?['Problem analiz ediliyor…','Neden araştırılıyor…','Onarım adımları hazırlanıyor…','Parça ve araçlar bulunuyor…']:
+               lang==='pl'?['Analiza problemu…','Identyfikacja przyczyny…','Przygotowanie kroków…','Szukanie części i narzędzi…']:
                ['Analyzing your problem…','Identifying the cause…','Preparing repair steps…','Finding parts and tools…'],
   };
 }
@@ -346,8 +352,8 @@ export default function App() {
         fontSize:'0.85rem', fontWeight:600, padding:'4px 0', fontFamily:'inherit',
         display:'flex', alignItems:'center', gap:4, marginBottom:8,
       }}>
-        ← {lang==='de'?'Zurück':lang==='fr'?'Retour':lang==='es'?'Atrás':lang==='it'?'Indietro':
-           lang==='mk'?'Назад':lang==='sr'||lang==='hr'?'Natrag':'Back'}
+← {lang==='de'?'Zurück':lang==='fr'?'Retour':lang==='es'?'Atrás':lang==='it'?'Indietro':
+(lang==='mk')?'Назад':(lang==='sr'||lang==='hr')?'Natrag':lang==='tr'?'Geri':lang==='pl'?'Wstecz':'Back'}
       </button>
     );
   };
@@ -635,7 +641,9 @@ export default function App() {
   function findParts() {
     if (!pInput.trim()) return;
     const isHSN = /^\d{4}/.test(vInput.trim());
-    const cleanPart = cleanProductSearchQuery(pInput, '', vType, vInput && !isHSN ? vInput : '', '');
+    // Pass empty brandOrModel — vInput is prepended separately in searchQ below
+    // This prevents "trek marlin 6 trek marlin 6 bremsbelag" duplication
+    const cleanPart = cleanProductSearchQuery(pInput, '', vType, '', '');
     let searchQ;
     if (isHSN && hsnModel.trim()) {
       searchQ = `${hsnModel.trim()} ${cleanPart}`;
@@ -1285,10 +1293,6 @@ export default function App() {
             <div style={{textAlign:'center',padding:'24px 20px',color:C.m,display:'flex',flexDirection:'column',alignItems:'center',gap:12}}>
               <Spinner size={32}/>
               <div style={{fontSize:'0.78rem'}}>{t('loadingPlaces')}</div>
-              <button onClick={()=>window.open(mu(`${catMapsQ[mapCat]||catLabels[mapCat]}`), '_blank', 'noopener,noreferrer')}
-                style={{...s.btn,...s.btnSec,width:'auto',padding:'8px 18px',fontSize:'0.76rem'}}>
-                🗺️ {lang==='de'?'Direkt in Google Maps öffnen':lang==='tr'?'Google Maps\'i hemen aç':lang==='pl'?'Otwórz Google Maps':'Open Google Maps now'}
-              </button>
             </div>
           )}
           {!bizLoading && bizError && (

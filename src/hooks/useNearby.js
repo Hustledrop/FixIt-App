@@ -2,7 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 
 export const MAP_CATS = {
   garage:   { icon:'🔧', q:'node["shop"="car_repair"](B);way["shop"="car_repair"](B);node["amenity"="car_repair"](B);' },
-  parts:    { icon:'🔩', q:'node["shop"="car_parts"](B);way["shop"="car_parts"](B);node["shop"="tyres"](B);' },
+  parts:    { icon:'🔩', q:'node["shop"="car_parts"](B);node["shop"="tyres"](B);way["shop"="car_parts"](B);' },
   tyres:    { icon:'🛞', q:'node["shop"="tyres"](B);way["shop"="tyres"](B);' },
   petrol:   { icon:'⛽', q:'node["amenity"="fuel"](B);way["amenity"="fuel"](B);' },
   hardware: { icon:'🏗️', q:'node["shop"="hardware"](B);node["shop"="doityourself"](B);way["shop"="hardware"](B);' },
@@ -11,15 +11,17 @@ export const MAP_CATS = {
 };
 
 function haversine(la1, lo1, la2, lo2) {
-  const R=6371, dL=(la2-la1)*Math.PI/180, dG=(lo2-lo1)*Math.PI/180;
-  const a=Math.sin(dL/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dG/2)**2;
-  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+  const R = 6371;
+  const dLa = (la2 - la1) * Math.PI / 180;
+  const dLo = (lo2 - lo1) * Math.PI / 180;
+  const a = Math.sin(dLa / 2) ** 2 + Math.cos(la1 * Math.PI / 180) * Math.cos(la2 * Math.PI / 180) * Math.sin(dLo / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 export function useNearby() {
   const [bizs, setBizs]       = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState(null);
+  const [error, setError]     = useState(null); // null | 'loc' | 'empty' | 'error'
   const reqId = useRef(0);
 
   const fetchBiz = useCallback(async (cat, lat, lng) => {
@@ -30,19 +32,21 @@ export function useNearby() {
     setError(null);
     setBizs([]);
 
-    const def  = MAP_CATS[cat] || MAP_CATS.garage;
-    // Old working bbox — larger area, more results
+    const q    = MAP_CATS[cat]?.q || MAP_CATS.garage.q;
     const bbox = `${lat - 0.03},${lng - 0.05},${lat + 0.03},${lng + 0.05}`;
-    // Old working approach: single endpoint, timeout:25 in the query itself
-    const query = `[out:json][timeout:25];(${def.q.replace(/B/g, bbox)});out body;>;out skel qt;`;
+    // Raw POST body — NO Content-Type header (matches the working 17.05 version)
+    // Overpass parses raw OverpassQL from POST body when no Content-Type is set
+    const query = `[out:json][timeout:25];(${q.replace(/B/g, bbox)});out body;>;out skel qt;`;
 
     try {
-      // Single endpoint — same as the version that worked reliably on 17.05
       const res  = await fetch('https://overpass-api.de/api/interpreter', {
         method: 'POST',
         body:   query,
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        // NO Content-Type header — this is the key. Sending application/x-www-form-urlencoded
+        // causes Overpass to expect a "data=" field which we don't send, so it rejects the query.
+        // Without Content-Type the browser sends it as raw body which Overpass accepts.
       });
+
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
 
