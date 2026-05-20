@@ -1308,7 +1308,7 @@ export default function App() {
                 {bizError==='error'&&<button onClick={()=>lat&&setNearbyBump(b=>b+1)} style={{...s.btn,width:'auto',padding:'10px 18px'}}>{t('tryAgain')}</button>}
                 <button onClick={()=>window.open(mu(`${catMapsQ[mapCat]||catLabels[mapCat]}`), '_blank', 'noopener,noreferrer')}
                   style={{...s.btn,...s.btnSec,width:'auto',padding:'10px 18px'}}>
-                  🗺️ {t('openGoogleMaps')}
+                  {t('openGoogleMaps')}
                 </button>
               </div>
             </div>
@@ -1335,7 +1335,7 @@ export default function App() {
               </div>
             ))}
             <div onClick={()=>window.open(mu(`${catMapsQ[mapCat]||catLabels[mapCat]}`), '_blank', 'noopener,noreferrer')} style={{...s.card,textAlign:'center',cursor:'pointer',marginTop:4,border:`1px solid rgba(26,95,232,0.2)`,background:'rgba(26,95,232,0.04)'}}>
-              <div style={{fontSize:'0.88rem',fontWeight:700,marginBottom:3}}>🗺️ {t('openGoogleMaps')}</div>
+              <div style={{fontSize:'0.88rem',fontWeight:700,marginBottom:3}}>{t('openGoogleMaps')}</div>
               <div style={{fontSize:'0.72rem',color:C.m}}>{t('allResultsMap')}</div>
             </div>
           </>}
