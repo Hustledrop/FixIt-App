@@ -654,9 +654,9 @@ export default function App() {
   // ── ONBOARDING ───────────────────────────────────────────────────────────────
   if (screen === 'onboarding') {
     const slides = [
-      { icon:'🔍', title: lang==='de'?'Beschreibe dein Problem':'Describe Your Problem', sub: lang==='de'?'Tippe oder fotografiere — die KI analysiert es sofort.':'Type or photograph — AI analyses it instantly.' },
-      { icon:'🤖', title: lang==='de'?'Genaue Reparaturschritte':'Get Exact Repair Steps', sub: lang==='de'?'Schritt-für-Schritt-Anleitung mit Bildern und Teilevorschlägen.':'Step-by-step guide with images and parts suggestions.' },
-      { icon:'🛒', title: lang==='de'?'Teile in deiner Nähe finden':'Find Parts Near You', sub: lang==='de'?'Lokale Shops und Online-Preise auf einen Blick.':'Local stores and online prices at a glance.' },
+      { icon:'🔍', title: t('describeYourProblem'), sub: lang==='de'?'Tippe oder fotografiere — die KI analysiert es sofort.':lang==='tr'?'Yaz veya fotoğrafla — yapay zeka hemen analiz eder.':lang==='pl'?'Wpisz lub sfotografuj — AI analizuje natychmiast.':'Type or photograph — AI analyses it instantly.' },
+      { icon:'🤖', title: t('getExactSteps'), sub: lang==='de'?'Schritt-für-Schritt-Anleitung mit Bildern und Teilevorschlägen.':lang==='tr'?'Resimler ve parça önerileriyle adım adım kılavuz.':lang==='pl'?'Instrukcja krok po kroku ze zdjęciami i sugestiami części.':'Step-by-step guide with images and parts suggestions.' },
+      { icon:'🛒', title: t('findPartsNearYou'), sub: lang==='de'?'Lokale Shops und Online-Preise auf einen Blick.':lang==='tr'?'Yerel mağazalar ve çevrimiçi fiyatlar bir bakışta.':lang==='pl'?'Lokalne sklepy i ceny online na jednym ekranie.':'Local stores and online prices at a glance.' },
     ];
     const slide = onboardSlide;
     const setSlide = setOnboardSlide;
@@ -672,7 +672,7 @@ export default function App() {
           {slides.map((_,i)=><div key={i} style={{width:i===slide?24:8,height:8,borderRadius:4,background:i===slide?C.o:'rgba(255,255,255,0.15)',transition:'width .3s'}}/>)}
         </div>
         <button onClick={isLast?done:()=>setSlide(s=>s+1)} style={{...s.btn,maxWidth:300,borderRadius:16,padding:16,fontSize:'1rem'}}>
-          {isLast?(lang==='de'?"Los geht's! 🔧":'Let\'s Fix It! 🔧'):'Next →'}
+          {isLast?(lang==='de'?"Los geht's! 🔧":lang==='tr'?'Hadi başlayalım! 🔧':lang==='pl'?'Zaczynamy! 🔧':lang==='mk'?'Ајде да почнеме! 🔧':lang==='hr'?'Počnimo! 🔧':"Let's Fix It! 🔧"):'Next →'}
         </button>
         <style>{CSS}</style>
       </div>
@@ -731,7 +731,7 @@ export default function App() {
       {!isOnline && <div style={{background:'rgba(232,178,26,0.15)',borderBottom:'1px solid rgba(232,178,26,0.3)',padding:'8px 16px',fontSize:'0.72rem',color:C.y,textAlign:'center',flexShrink:0}}>⚠️ Offline mode — emergency info still available</div>}
       {/* PWA install banner */}
       {showPWA && <div style={{background:'rgba(232,82,26,0.1)',borderBottom:`1px solid ${C.b}`,padding:'10px 16px',display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
-        <div style={{flex:1,fontSize:'0.78rem'}}>📲 {lang==='de'?'FixIt installieren für schnelleren Zugriff':'Install FixIt for faster access'}</div>
+        <div style={{flex:1,fontSize:'0.78rem'}}>📲 {lang==='de'?'FixIt installieren für schnelleren Zugriff':lang==='tr'?'Daha hızlı erişim için FixIt yükle':lang==='pl'?'Zainstaluj FixIt dla szybszego dostępu':'Install FixIt for faster access'}</div>
         <button onClick={()=>{if(pwaPrompt.current){pwaPrompt.current.prompt();pwaPrompt.current=null;}LS.set('pwa_dismissed',true);setShowPWA(false);}} style={{background:C.o,border:'none',borderRadius:8,padding:'5px 12px',color:'#fff',fontSize:'0.72rem',fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>Install</button>
         <button onClick={()=>{LS.set('pwa_dismissed',true);setShowPWA(false);}} style={{background:'none',border:'none',color:C.m,fontSize:'0.78rem',cursor:'pointer',fontFamily:'inherit'}}>✕</button>
       </div>}
@@ -755,7 +755,7 @@ export default function App() {
         {showHistory && (
           <div onClick={()=>setShowHistory(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',zIndex:100,display:'flex',alignItems:'flex-end'}}>
             <div onClick={e=>e.stopPropagation()} style={{background:'#151310',borderRadius:'26px 26px 0 0',width:'100%',maxHeight:'70vh',overflowY:'auto',padding:20}}>
-              <div style={{fontSize:'1rem',fontWeight:800,marginBottom:16}}>🕐 {lang==='de'?'Verlauf':'Repair History'}</div>
+              <div style={{fontSize:'1rem',fontWeight:800,marginBottom:16}}>🕐 {lang==='de'?'Verlauf':lang==='tr'?'Tamir Geçmişi':lang==='pl'?'Historia Napraw':lang==='mk'?'Историја':lang==='hr'?'Povijest':'Repair History'}</div>
               {history.map(h=>(
                 <div key={h.id} style={{...s.card,marginBottom:8}}>
                   <div style={{fontSize:'0.82rem',fontWeight:700,marginBottom:4}}>{h.problem}</div>
@@ -769,7 +769,7 @@ export default function App() {
                 </div>
               ))}
               {history.length === 0 && <div style={{textAlign:'center',color:C.m,padding:'20px 0'}}>No repairs yet</div>}
-              <button onClick={()=>{setHistory([]);LS.set('history',[]);}} style={{...s.btn,...s.btnSec,marginTop:8,fontSize:'0.78rem',padding:'10px'}}>{lang==='de'?'Verlauf löschen':'Clear history'}</button>
+              <button onClick={()=>{setHistory([]);LS.set('history',[]);}} style={{...s.btn,...s.btnSec,marginTop:8,fontSize:'0.78rem',padding:'10px'}}>{lang==='de'?'Verlauf löschen':lang==='tr'?'Geçmişi temizle':lang==='pl'?'Wyczyść historię':'Clear history'}</button>
             </div>
           </div>
         )}
@@ -798,7 +798,7 @@ export default function App() {
             <div style={{fontSize:'1.5rem',marginBottom:8}}>📍</div>
             <div style={{fontSize:'0.86rem',fontWeight:700,marginBottom:6}}>{t('enableLocBanner')}</div>
             <div style={{fontSize:'0.75rem',color:C.m,marginBottom:6}}>{t('enableLocDesc')}</div>
-            {locStatus === 'denied' && <div style={{fontSize:'0.72rem',color:C.y,marginBottom:8}}>⚠️ {lang==='de'?'GPS-Zugriff verweigert. Einstellungen → Datenschutz → Standort → FixIt.':'GPS denied. Enable in Settings → Privacy → Location → FixIt.'}</div>}
+            {locStatus === 'denied' && <div style={{fontSize:'0.72rem',color:C.y,marginBottom:8}}>⚠️ {lang==='de'?'GPS-Zugriff verweigert. Einstellungen → Datenschutz → Standort → FixIt.':lang==='tr'?'GPS reddedildi. Ayarlar → Gizlilik → Konum → FixIt.':lang==='pl'?'GPS odmówiony. Ustawienia → Prywatność → Lokalizacja → FixIt.':'GPS denied. Enable in Settings → Privacy → Location → FixIt.'}</div>}
             <button onClick={()=>goto('loc-ask')} style={{...s.btn,width:'auto',padding:'10px 20px',borderRadius:100}}>{t('allow')}</button>
           </div>
         )}
@@ -900,7 +900,7 @@ export default function App() {
         <div style={{padding:'52px 20px 14px',background:'linear-gradient(160deg,#001a0d,#0A0908 60%)',borderBottom:`1px solid ${C.b}`,flexShrink:0}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
             <BackBtn/>
-            {r && <button onClick={handleShare} style={{background:'none',border:`1px solid ${C.b}`,borderRadius:100,padding:'5px 12px',fontSize:'0.72rem',cursor:'pointer',color:C.m,fontFamily:'inherit'}}>↗ {lang==='de'?'Teilen':'Share'}</button>}
+            {r && <button onClick={handleShare} style={{background:'none',border:`1px solid ${C.b}`,borderRadius:100,padding:'5px 12px',fontSize:'0.72rem',cursor:'pointer',color:C.m,fontFamily:'inherit'}}>↗ {lang==='de'?'Teilen':lang==='tr'?'Paylaş':lang==='pl'?'Udostępnij':'Share'}</button>}
           </div>
           <div style={{display:'flex',alignItems:'center',gap:14}}>
             <div style={{position:'relative',width:68,height:68,flexShrink:0}}>
@@ -943,7 +943,7 @@ export default function App() {
                   {isKeyIssue?t('aiNoKey'):t('aiUnavailable')}
                 </div>
                 <div style={{fontSize:'0.86rem',color:C.m,textAlign:'center',lineHeight:1.65,marginBottom:savedProb?8:16}}>
-                  {isKeyIssue?t('aiNoKeyDesc'):(lang==='de'?'Bitte nochmals versuchen. Deine Eingabe wird erneut gesendet.':'Please try again. Your input will be resent.')}
+                  {isKeyIssue?t('aiNoKeyDesc'):(lang==='de'?'Bitte nochmals versuchen. Deine Eingabe wird erneut gesendet.':lang==='tr'?'Lütfen tekrar dene. Giriş yeniden gönderilecek.':lang==='pl'?'Spróbuj ponownie. Twoje dane zostaną przesłane ponownie.':'Please try again. Your input will be resent.')}
                 </div>
                 {!isKeyIssue && savedProb && (
                   <div style={{background:'rgba(255,255,255,0.04)',borderRadius:8,padding:'8px 10px',marginBottom:8,fontSize:'0.72rem',color:C.m,lineHeight:1.5}}>
@@ -972,7 +972,7 @@ export default function App() {
                     ⚡ {lang==='de'?'Schnellanalyse — für vollständige Diagnose erneut versuchen oder Foto hochladen.':'Quick analysis — retry or upload a photo for a complete diagnosis.'}
                   </div>
                   <button onClick={()=>runAI(problemRef.current||undefined)} style={{...s.btn,padding:'10px 16px',fontSize:'0.82rem',width:'auto'}}>
-                    🔄 {lang==='de'?'Erneut analysieren':'Retry analysis'}
+                    🔄 {lang==='de'?'Erneut analysieren':lang==='tr'?'Tekrar analiz et':lang==='pl'?'Analizuj ponownie':'Retry analysis'}
                   </button>
                 </div>
               )}
@@ -1006,7 +1006,7 @@ export default function App() {
                         </div>
                         {googleImgUrl && (
                           <button onClick={()=>window.open(googleImgUrl, '_blank', 'noopener,noreferrer')} style={{background:'rgba(26,95,232,0.15)',border:'1px solid rgba(26,95,232,0.3)',borderRadius:8,padding:'6px 10px',color:C.bl,fontSize:'0.65rem',fontWeight:700,cursor:'pointer',whiteSpace:'nowrap',flexShrink:0,fontFamily:'inherit'}}>
-                            🔍 {lang==='de'?'Bild':'Image'}
+                            🔍 {lang==='de'?'Bild':lang==='tr'?'Görsel':lang==='pl'?'Obraz':'Image'}
                           </button>
                         )}
                         <div style={{position:'absolute',top:8,left:8,background:C.o,color:'#fff',fontSize:'0.6rem',fontWeight:800,padding:'3px 8px',borderRadius:100}}>{i+1}</div>
@@ -1052,12 +1052,12 @@ export default function App() {
             </div>}
             {feedback === 'fixed' && <div style={{...s.card,background:'rgba(26,158,92,0.08)',borderColor:'rgba(26,158,92,0.3)',textAlign:'center'}}>
               <div style={{fontSize:'1.5rem',marginBottom:8}}>🎉</div>
-              <div style={{fontSize:'1rem',fontWeight:800,marginBottom:8,color:C.g}}>{lang==='de'?'Glückwunsch! Problem behoben!':'Problem Fixed!'}</div>
-              <button onClick={handleShare} style={{...s.btn,marginBottom:8}}>↗ {lang==='de'?'Teilen':'Share Fix'}</button>
+              <div style={{fontSize:'1rem',fontWeight:800,marginBottom:8,color:C.g}}>{lang==='de'?'Glückwunsch! Problem behoben!':lang==='tr'?'Tebrikler! Problem çözüldü!':lang==='pl'?'Gratulacje! Problem rozwiązany!':'Problem Fixed!'}</div>
+              <button onClick={handleShare} style={{...s.btn,marginBottom:8}}>↗ {lang==='de'?'Teilen':lang==='tr'?'Paylaş':lang==='pl'?'Udostępnij':'Share Fix'}</button>
             </div>}
             {feedback === 'broken' && <div style={{...s.card,background:'rgba(214,59,47,0.06)',borderColor:'rgba(214,59,47,0.25)',textAlign:'center'}}>
               <div style={{fontSize:'1.5rem',marginBottom:8}}>🔧</div>
-              <div style={{fontSize:'0.9rem',fontWeight:700,marginBottom:12}}>{lang==='de'?'Noch nicht behoben?':'Not fixed yet?'}</div>
+              <div style={{fontSize:'0.9rem',fontWeight:700,marginBottom:12}}>{lang==='de'?'Noch nicht behoben?':lang==='tr'?'Henüz düzeltilmedi mi?':lang==='pl'?'Jeszcze nie naprawione?':'Not fixed yet?'}</div>
               <button onClick={()=>window.open(mu(proQ), '_blank', 'noopener,noreferrer')} style={{...s.btn,background:C.r}}>{ct.proBtn}</button>
             </div>}
             {r.callPro ? (
@@ -1262,7 +1262,7 @@ export default function App() {
                 {locStatus==='denied' ? (
                   <div style={{textAlign:'center',padding:20}}>
                     <div style={{fontSize:'2rem',marginBottom:8}}>📍</div>
-                    <div style={{fontSize:'0.82rem',color:C.m,marginBottom:12}}>{lang==='de'?'GPS verweigert. Standort in Einstellungen aktivieren.':'GPS denied. Enable location in Settings.'}</div>
+                    <div style={{fontSize:'0.82rem',color:C.m,marginBottom:12}}>{lang==='de'?'GPS verweigert. Standort in Einstellungen aktivieren.':lang==='tr'?'GPS reddedildi. Ayarlardan etkinleştirin.':lang==='pl'?'GPS odmówiony. Włącz lokalizację w ustawieniach.':'GPS denied. Enable location in Settings.'}</div>
                     <button onClick={()=>goto('loc-ask')} style={{...s.btn,width:'auto',padding:'8px 16px',fontSize:'0.78rem'}}>How to enable →</button>
                   </div>
                 ) : (
@@ -1277,7 +1277,7 @@ export default function App() {
             <div style={{fontSize:'1.5rem',marginBottom:8}}>📍</div>
             <div style={{fontSize:'0.86rem',fontWeight:700,marginBottom:6}}>{t('locationNeeded')}</div>
             <div style={{fontSize:'0.75rem',color:C.m,marginBottom:12}}>{t('locationNeededDesc')}</div>
-            {locStatus==='denied' && <div style={{fontSize:'0.72rem',color:C.y,marginBottom:10}}>⚠️ {lang==='de'?'GPS verweigert — Einstellungen → Datenschutz → Standort → FixIt aktivieren.':'GPS denied — go to Settings → Privacy → Location → enable FixIt.'}</div>}
+            {locStatus==='denied' && <div style={{fontSize:'0.72rem',color:C.y,marginBottom:10}}>⚠️ {lang==='de'?'GPS verweigert — Einstellungen → Datenschutz → Standort → FixIt aktivieren.':lang==='tr'?'GPS reddedildi — Ayarlar → Gizlilik → Konum → FixIt':lang==='pl'?'GPS odmówiony — Ustawienia → Prywatność → Lokalizacja → FixIt':'GPS denied — go to Settings → Privacy → Location → enable FixIt.'}</div>}
             <button onClick={()=>goto('loc-ask')} style={{...s.btn,width:'auto',padding:'10px 20px',borderRadius:100}}>{t('enableLocation')}</button>
           </div>}
           {/* ONE status block — loading shows spinner + Maps button; error shows Maps button; never duplicates */}
@@ -1287,7 +1287,7 @@ export default function App() {
               <div style={{fontSize:'0.78rem'}}>{t('loadingPlaces')}</div>
               <button onClick={()=>window.open(mu(`${catMapsQ[mapCat]||catLabels[mapCat]}`), '_blank', 'noopener,noreferrer')}
                 style={{...s.btn,...s.btnSec,width:'auto',padding:'8px 18px',fontSize:'0.76rem'}}>
-                🗺️ {lang==='de'?'Direkt in Google Maps öffnen':'Open Google Maps now'}
+                🗺️ {lang==='de'?'Direkt in Google Maps öffnen':lang==='tr'?'Google Maps\'i hemen aç':lang==='pl'?'Otwórz Google Maps':'Open Google Maps now'}
               </button>
             </div>
           )}
@@ -1353,20 +1353,20 @@ export default function App() {
     const isBikeParts = vType === 'bike';
     const isRepairParts = !isPetParts && vType !== 'garden';
     const vPH = vType==='car'?t('vehicleInputCar'):vType==='bike'?t('vehicleInputBike'):(vType==='home'||vType==='appliances')?t('vehicleInputHome'):
-                vType==='pets'?(lang==='de'?'Tierart, z.B. Hund, Katze, Vogel':'Pet type, e.g. dog, cat, bird'):t('vehicleInputDefault');
+                vType==='pets'?(t('vehicleInputPet')):t('vehicleInputDefault');
     return (
       <Screen>
         {showLP && <LangPicker lang={lang} setLang={lc=>{setLang(lc);setShowLP(false);aiReset();setPResults(null);setPInput('');setVInput('');}} setShowLP={setShowLP} LANGS={LANGS} t={t}/>}
         <div style={{padding:'52px 20px 14px',borderBottom:`1px solid ${C.b}`,flexShrink:0}}>
           <BackBtn/>
           <div style={{fontSize:'1.35rem',fontWeight:800,letterSpacing:'-0.02em',marginBottom:4}}>
-            {vType==='car'   ?(lang==='de'?'Auto-Teile finden':'Find Auto Parts'):
-             vType==='bike'  ?(lang==='de'?'Fahrrad-Teile finden':'Find Bike Parts'):
-             vType==='tech'  ?(lang==='de'?'Elektronik & Zubehör':'Electronics & Parts'):
-             vType==='appliances'?(lang==='de'?'Geräte-Ersatzteile':'Appliance Parts'):
-             vType==='garden'?(lang==='de'?'Gartenbedarf finden':'Find Garden Supplies'):
-             vType==='pets'  ?(lang==='de'?'Tierbedarf finden':'Find Pet Supplies'):
-                              (lang==='de'?'Haus & Geräte finden':'Find Parts & Tools')}
+            {vType==='car'   ?(lang==='de'?'Auto-Teile finden':lang==='tr'?'Araba Parçası Bul':lang==='pl'?'Znajdź części do auta':'Find Auto Parts'):
+             vType==='bike'  ?(lang==='de'?'Fahrrad-Teile finden':lang==='tr'?'Bisiklet Parçası Bul':lang==='pl'?'Znajdź części do roweru':'Find Bike Parts'):
+             vType==='tech'  ?(lang==='de'?'Elektronik & Zubehör':lang==='tr'?'Elektronik & Aksesuar':lang==='pl'?'Elektronika & Akcesoria':'Electronics & Parts'):
+             vType==='appliances'?(lang==='de'?'Geräte-Ersatzteile':lang==='tr'?'Cihaz Yedek Parçaları':lang==='pl'?'Części do AGD':'Appliance Parts'):
+             vType==='garden'?(lang==='de'?'Gartenbedarf finden':lang==='tr'?'Bahçe Malzemesi Bul':lang==='pl'?'Znajdź artykuły ogrodowe':'Find Garden Supplies'):
+             vType==='pets'  ?(lang==='de'?'Tierbedarf finden':lang==='tr'?'Evcil Hayvan Ürünleri Bul':lang==='pl'?'Znajdź produkty dla zwierząt':'Find Pet Supplies'):
+                              (lang==='de'?'Haus & Geräte finden':lang==='tr'?'Ev & Alet Bul':lang==='pl'?'Znajdź części & narzędzia':'Find Parts & Tools')}
           </div>
           <div style={{fontSize:'0.82rem',color:C.m}}>{t('partsSubtitle')}</div>
         </div>
@@ -1383,12 +1383,12 @@ export default function App() {
             {/^\d{4}/.test(vInput.trim()) && (
               <div style={{marginTop:10,padding:'10px 12px',background:'rgba(232,178,26,0.08)',border:'1px solid rgba(232,178,26,0.2)',borderRadius:10}}>
                 <div style={{fontSize:'0.65rem',color:C.y,fontWeight:700,marginBottom:6}}>
-                  {lang==='de'?'✏️ Fahrzeugmodell ergänzen (empfohlen für genaue Suche):':'✏️ Add vehicle model (recommended for accurate search):'}
+                  {lang==='de'?'✏️ Fahrzeugmodell ergänzen (empfohlen für genaue Suche):':lang==='tr'?'✏️ Araç modeli ekle (kesin arama için önerilir):':lang==='pl'?'✏️ Dodaj model pojazdu (zalecane dla dokładnego wyszukiwania):':'✏️ Add vehicle model (recommended for accurate search):'}
                 </div>
                 <input
                   value={hsnModel}
                   onChange={e=>setHsnModel(e.target.value)}
-                  placeholder={lang==='de'?'z.B. VW Golf 7 2.0 TDI 2017':'e.g. VW Golf 7 2.0 TDI 2017'}
+                  placeholder={lang==='de'?'z.B. VW Golf 7 2.0 TDI 2017':lang==='tr'?'örn. VW Golf 7 2.0 TDI 2017':lang==='pl'?'np. VW Golf 7 2.0 TDI 2017':'e.g. VW Golf 7 2.0 TDI 2017'}
                   style={{...s.inp,marginBottom:0}}
                 />
               </div>
@@ -1397,9 +1397,9 @@ export default function App() {
           <div style={s.card}>
             <div style={{fontSize:'0.65rem',color:C.m,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:8}}>{isPetParts?(lang==='de'?'Welches Produkt wird benötigt?':'What product is needed?'):isBikeParts?(lang==='de'?'Welches Teil oder Zubehör?':'Which part or accessory?'):t('whatPartNeeded')}</div>
             <input value={pInput} onChange={e=>setPInput(e.target.value)} placeholder={isPetParts?(lang==='de'?'z.B. Flohmittel, Futternapf, Leine':'e.g. flea treatment, food bowl, leash'):
-                isBikeParts?(lang==='de'?'z.B. Bremsbelag, Kette, Schlauch':'e.g. brake pads, chain, inner tube'):
+                isBikeParts?(lang==='de'?'z.B. Bremsbelag, Kette, Schlauch':lang==='tr'?'örn. fren balataları, zincir, iç lastik':lang==='pl'?'np. klocki hamulcowe, łańcuch, dętka':'e.g. brake pads, chain, inner tube'):
                 t('partInputPlaceholder')} style={{...s.inp,marginBottom:10}}/>
-            <button onClick={findParts} style={s.btn}>{isPetParts?(lang==='de'?'Produkte suchen':'Find Products'):isBikeParts?(lang==='de'?'Fahrradteile suchen':'Find Bike Parts'):t('findPartsBtn')}</button>
+            <button onClick={findParts} style={s.btn}>{isPetParts?(lang==='de'?'Produkte suchen':lang==='tr'?'Ürün bul':lang==='pl'?'Znajdź produkty':'Find Products'):isBikeParts?(lang==='de'?'Fahrradteile suchen':'Find Bike Parts'):t('findPartsBtn')}</button>
           </div>
           <div style={{...s.card,display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
             <span>{lat?'✅':'📍'}</span>
@@ -1411,14 +1411,14 @@ export default function App() {
           </div>
           {!pResults&&<div style={{...s.card,textAlign:'center',color:C.m}}>
             <div style={{fontSize:'2rem',marginBottom:10}}>🔩</div>
-            <div style={{fontSize:'0.86rem',fontWeight:700,marginBottom:5}}>{isPetParts?(lang==='de'?'Produkt eingeben':'Enter product'):t('typePartFirst')}</div>
+            <div style={{fontSize:'0.86rem',fontWeight:700,marginBottom:5}}>{isPetParts?(lang==='de'?'Produkt eingeben':lang==='tr'?'Ürün gir':lang==='pl'?'Wpisz produkt':'Enter product'):t('typePartFirst')}</div>
             <div style={{fontSize:'0.7rem',lineHeight:1.5,color:C.g}}>📍 {localSearchTerm} · {lang==='de'?'Amazon · eBay · Idealo':'Amazon · eBay'}</div>
           </div>}
           {pResults&&<>
             {pResults.fromDiagnosis && aiResult?.partsNeeded?.length > 1 ? (
               <div style={{marginBottom:10}}>
                 <div style={{fontSize:'0.7rem',fontWeight:700,color:C.m,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:8}}>
-                  {lang==='de'?'Teile aus der Diagnose — tippe zum Suchen:':'Parts from diagnosis — tap to search:'}
+                  {lang==='de'?'Teile aus der Diagnose — tippe zum Suchen:':lang==='tr'?'Teşhisten parçalar — aramak için dokun:':lang==='pl'?'Części z diagnozy — dotknij aby wyszukać:':'Parts from diagnosis — tap to search:'}
                 </div>
                 <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
                   {aiResult.partsNeeded.map((part,pi)=>(
@@ -1445,10 +1445,10 @@ export default function App() {
               <div style={{fontSize:'0.78rem',color:C.t,lineHeight:1.6,marginBottom:6}}>
                 {pResults.isHSN
                   ? (pResults.hsnModel
-                    ? `${lang==='de'?'Modell':'Model'}: ${pResults.hsnModel} — ${lang==='de'?'Suche':'Search'}: "${pResults.searchQ}"`
+                    ? `${lang==='de'?'Modell':lang==='tr'?'Model':lang==='pl'?'Model':'Model'}: ${pResults.hsnModel} — ${lang==='de'?'Suche':lang==='tr'?'Arama':lang==='pl'?'Szukaj':'Search'}: "${pResults.searchQ}"`
                     : (lang==='de'?'HSN/TSN erkannt — bitte Modell oben ergänzen (z.B. "VW Golf 7 2.0 TDI 2017")':
                        'HSN/TSN detected — add the vehicle model above (e.g. "VW Golf 7 2.0 TDI 2017")'))
-                  : `${lang==='de'?'Suche':'Search'}: "${pResults.searchQ}"`}
+                  : `${lang==='de'?'Suche':lang==='tr'?'Arama':lang==='pl'?'Szukaj':'Search'}: "${pResults.searchQ}"`}
               </div>
               {pResults.isHSN && !pResults.hsnModel && <div style={{fontSize:'0.7rem',color:C.m}}>
                 {lang==='de'?'Tipp: Modell oben ergänzen für exakte Teilesuche.':'Tip: Add the model above for exact part search.'}
