@@ -36,6 +36,89 @@ async function readBody(req) {
   });
 }
 
+// ── Vehicle context extraction (regex-first, zero cost) ──────────────────────
+// Parses common vehicle references from free-text problem descriptions.
+// Returns null if no vehicle detected — AI will then use generic parts.
+function extractVehicleFromText(text) {
+  if (!text) return null;
+  const t = text.toUpperCase();
+
+  // Make/brand patterns — covers major European, US, Korean, Japanese markets
+  const MAKES = {
+    VW:         ['VW','VOLKSWAGEN','VOLKS WAGEN'],
+    BMW:        ['BMW'],
+    MERCEDES:   ['MERCEDES','MERCEDES-BENZ','MERCEDES BENZ','MERC','MB'],
+    AUDI:       ['AUDI'],
+    FORD:       ['FORD'],
+    OPEL:       ['OPEL','VAUXHALL'],
+    RENAULT:    ['RENAULT','DACIA'],
+    PEUGEOT:    ['PEUGEOT'],
+    CITROEN:    ['CITROËN','CITROEN'],
+    FIAT:       ['FIAT'],
+    TOYOTA:     ['TOYOTA'],
+    HONDA:      ['HONDA'],
+    SKODA:      ['SKODA','ŠKODA'],
+    SEAT:       ['SEAT'],
+    HYUNDAI:    ['HYUNDAI'],
+    KIA:        ['KIA'],
+    MAZDA:      ['MAZDA'],
+    NISSAN:     ['NISSAN'],
+    VOLVO:      ['VOLVO'],
+    SUBARU:     ['SUBARU'],
+    SUZUKI:     ['SUZUKI'],
+    MITSUBISHI: ['MITSUBISHI'],
+  };
+
+  let make = null;
+  for (const [key, aliases] of Object.entries(MAKES)) {
+    if (aliases.some(a => t.includes(a))) { make = key; break; }
+  }
+  if (!make) return null; // no vehicle detected
+
+  // Model extraction — common models per make
+  const MODEL_PATTERNS = {
+    VW:       [/GOLF\s*([1-9]|I{1,3}V?|PLUS|GTI|R|VARIANT|ALLTRACK)?/,/PASSAT\s*(B[3-9]|CC)?/,/POLO\s*([1-9])?/,/TIGUAN\s*([12])?/,/TOUAREG/,/T-ROC/,/CADDY/,/TRANSPORTER\s*(T[4-7])?/,/SHARAN/,/PHAETON/,/ARTEON/,/ID\.?[3-9]/],
+    BMW:      [/([1-9])ER\s*(?:SERIE)?/,/X([1-9])/,/([1-9][0-9]{2}[IDMS]?)\s*(?:E|F|G|I)\d{1,2}/,/M([2-9])/,/([3-9]20|[1-9][0-9]{2})[IDS]/],
+    MERCEDES: [/\b([ABCEGLS])-?(?:KLASSE|CLASS)?\s*(?:W\d{3})?/,/\b([ABCEGLS])[0-9]{3}/,/GLC|GLE|GLA|GLB|CLA|CLK|SLK|AMG/,/SPRINTER/,/VITO/],
+    AUDI:     [/A([1-9])/,/Q([1-9])/,/TT/,/R8/,/E-TRON/,/RS\s*[1-9]/,/S[1-9]/,/([A-Z][1-9])\s*(?:B[4-9]|C[5-9])?/],
+    FORD:     [/FIESTA/,/FOCUS/,/MONDEO/,/PUMA/,/KUGA/,/MUSTANG/,/TRANSIT/,/RANGER/,/GALAXY/,/S-MAX/,/C-MAX/],
+    OPEL:     [/ASTRA\s*([A-J])?/,/CORSA\s*([A-F])?/,/INSIGNIA\s*([AB])?/,/MOKKA/,/ZAFIRA/,/VECTRA/,/MERIVA/],
+    TOYOTA:   [/COROLLA/,/YARIS/,/AURIS/,/RAV4/,/PRIUS/,/AYGO/,/C-HR/,/HILUX/,/LAND CRUISER/,/CAMRY/],
+    HONDA:    [/CIVIC/,/JAZZ/,/CR-V/,/HR-V/,/ACCORD/],
+    SKODA:    [/OCTAVIA\s*([123])?/,/FABIA/,/SUPERB/,/KAROQ/,/KODIAQ/,/SCALA/],
+    SEAT:     [/IBIZA/,/LEON/,/ARONA/,/ATECA/,/TARRACO/,/TOLEDO/],
+    RENAULT:  [/CLIO/,/MEGANE/,/LAGUNA/,/SCENIC/,/CAPTUR/,/KADJAR/,/KOLEOS/,/ZOE/,/KANGOO/],
+    PEUGEOT:  [/[0-9]{3}[0-9]?/,/PARTNER/,/EXPERT/,/BOXER/],
+    CITROEN:  [/C[1-9]/,/BERLINGO/,/JUMPY/,/DS[1-9]/],
+    HYUNDAI:  [/I[1-9]0/,/TUCSON/,/SANTA FE/,/IONIQ/,/KONA/,/I20|I30|I40/],
+    KIA:      [/RIO/,/CEE'?D/,/SPORTAGE/,/SORENTO/,/STINGER/,/PICANTO/,/NIRO/],
+  };
+
+  let model = null;
+  if (MODEL_PATTERNS[make]) {
+    for (const pat of MODEL_PATTERNS[make]) {
+      const m = t.match(pat);
+      if (m) { model = m[0].trim().replace(/\s+/g,' '); break; }
+    }
+  }
+
+  // Generation/chassis codes (e.g. F30, B8, Mk7)
+  const genMatch = text.match(/(Mk\.?\s*[1-9]|[ABCDEFG][0-9]{1,2}|[EFG]\d{2}|B[5-9]|W\d{3})/i);
+  const generation = genMatch ? genMatch[1].toUpperCase() : null;
+
+  // Engine (e.g. 2.0 TDI, 1.6 HDi, 320d, dCi 130)
+  const engMatch = text.match(/\b(\d\.\d\s*(?:TDI|TSI|TFSI|GTI|CDI|HDi|dCi|TDCi|CDTI|CRDi|EcoBoost|BlueHDi|Turbo)|[0-9]{2,3}\s*(?:TDI|TSI|TFSI|CDI|HDi|dCi|d)|[1-9][0-9]{2}d)\b/i);
+  const engine = engMatch ? engMatch[1].replace(/\s+/g,' ').trim().toUpperCase() : null;
+
+  // Year (4-digit year 1970–2030)
+  const yearMatch = text.match(/(19[7-9]\d|20[0-2]\d)/);
+  const year = yearMatch ? yearMatch[1] : null;
+
+  if (!model && !engine && !generation) return null; // make detected but too vague
+
+  return { make, model, generation, engine, year };
+}
+
 // ── Single Anthropic call with its own 55s AbortController ──────────────────
 async function callAnthropic(apiKey, content, attemptNum) {
   const TIMEOUT_MS = 55000; // 55s — Vercel Pro allows 60s, give 5s buffer
@@ -114,8 +197,10 @@ module.exports = async function handler(req, res) {
   const hasText  = prob.length > 0;
   const hasImage = typeof photoB64 === 'string' && photoB64.length > 100;
 
-  console.log('[FixIt] REQUEST cat=%s lang=%s hasText=%s hasImage=%s prob=%s',
-    cat, lang2, hasText, hasImage, prob.slice(0, 60));
+  // Extract vehicle context from problem text (regex-first, instant)
+  const vehicleCtx = cat === 'car' ? extractVehicleFromText(prob) : null;
+  console.log('[FixIt] REQUEST cat=%s lang=%s hasText=%s hasImage=%s vehicle=%s prob=%s',
+    cat, lang2, hasText, hasImage, vehicleCtx ? JSON.stringify(vehicleCtx) : 'none', prob.slice(0, 60));
 
   if (!hasText && !hasImage) {
     return res.status(400).json({ error: 'no_input', version: DEPLOY_VERSION });
@@ -170,7 +255,13 @@ module.exports = async function handler(req, res) {
 
       `Be specific and expert. Name the exact component. Use real tool names (Torx T20, 13mm socket). Max 4 steps. Diagnosis under 90 words.`,
 
-      `partsNeeded RULES — critical: generate 2–4 SHORT PURCHASABLE SEARCH QUERIES, not descriptions. Each must be 2–5 words max. Format: Brand+PartType or Universal+PartType+size. GOOD: ["Geberit Spülkasten Dichtung","Grohe Ablaufventil","Universal WC Flapper 63mm"]. BAD: ["Ablaufventil-Dichtung passend zum Spülkasten-Modell","Ersatzteil für tropfenden Wasserhahn"]. Include: 1 brand-specific option (if brand known), 1 universal/generic fallback. Never write sentences. Never add "passend für", "Ersatzteil für", "kompatibel mit".`,
+      // Build vehicle-aware partsNeeded instruction
+      ...(vehicleCtx ? [
+        `DETECTED VEHICLE: ${[vehicleCtx.year, vehicleCtx.make, vehicleCtx.model, vehicleCtx.generation, vehicleCtx.engine].filter(Boolean).join(' ')}. Use this for vehicle-specific part search queries.`,
+        `partsNeeded RULES — VEHICLE-SPECIFIC MODE: generate 2–4 SHORT PURCHASABLE SEARCH QUERIES using the detected vehicle. Each must be 3–6 words max. Format: VehicleModel+Brand+PartType or VehicleModel+PartType+Spec. GOOD examples for Golf 7 battery: ["Golf 7 AGM Batterie 70Ah","Varta AGM 70Ah Golf 7","Bosch Start Stop Batterie Golf 7","Golf 7 EFB 70Ah"]. GOOD for BMW 320d brakes: ["BMW F30 Bremsscheiben vorne","Brembo 320d Bremsbeläge","BMW F30 Bremsscheibe 300mm"]. Rules: include vehicle model/generation in EVERY query, include at least one aftermarket brand (Brembo, Bosch, Varta, NGK, Febi, Sachs, etc.), include at least one generic fallback with vehicle name. NEVER say "passend für", "Ersatzteil für", "kompatibel mit". Never write sentences. These are SEARCH SUGGESTIONS only — not confirmed fitment.`,
+      ] : [
+        `partsNeeded RULES — generate 2–4 SHORT PURCHASABLE SEARCH QUERIES, not descriptions. Each must be 2–5 words max. Format: Brand+PartType or Universal+PartType+size. GOOD: ["Geberit Spülkasten Dichtung","Grohe Ablaufventil","Universal WC Flapper 63mm"]. BAD: ["Ablaufventil-Dichtung passend zum Spülkasten-Modell","Ersatzteil für tropfenden Wasserhahn"]. Include: 1 brand-specific option, 1 universal/generic fallback. Never write sentences. Never add "passend für", "Ersatzteil für", "kompatibel mit".`,
+      ]),
 
       `estimatedCost: realistic DIY parts cost only, in the currency of ${countryName}. Format: "€5–15". timeEstimate: realistic hands-on time.`,
 
@@ -298,7 +389,8 @@ module.exports = async function handler(req, res) {
 
   // ── 9. Return ───────────────────────────────────────────────────────────────
   parsed._version = DEPLOY_VERSION;
+  if (vehicleCtx) parsed._vehicleCtx = vehicleCtx; // expose for UI compatibility warning
   const dur = Date.now() - t0;
-  console.log('[FixIt] RETURNING_RESPONSE dur=%dms conf=%s keys=%s', dur, parsed.confidence, Object.keys(parsed).join(','));
+  console.log('[FixIt] RETURNING_RESPONSE dur=%dms conf=%s vehicle=%s', dur, parsed.confidence, vehicleCtx ? parsed._vehicleCtx.make + ' ' + (parsed._vehicleCtx.model||'') : 'none');
   return res.status(200).json(parsed);
 };
