@@ -18,7 +18,9 @@ async function callAPI(payload) {
   }
 
   if (!res.ok) {
-    throw { code: data.error || 'server_error', status: res.status,
+    // 429 rate limit gets a specific code so the UI can show a clear message
+    const errCode = res.status === 429 ? 'rate_limited' : (data.error || 'server_error');
+    throw { code: errCode, status: res.status,
       debug: data.debug || data.message || `HTTP ${res.status}` };
   }
   return data;
@@ -94,9 +96,9 @@ export function useAI() {
 
         // Don't retry permanent errors (key issues, bad request)
         // Abort/timeout = deliberate, don't retry. Cold-start (function_not_found) = do retry.
-        const isPermanent = ['missing_api_key', 'invalid_api_key', 'invalid_api_key_format',
+        const isPermanent = ['missing_api_key', 'invalid_api_key', 'invalid_api_key_format', 'rate_limited',
                              'invalid_json', 'empty_body', 'no_input', 'method_not_allowed',
-                             'timeout', 'timeout_26s'].includes(code);
+                             'timeout'].includes(code);
         if (isPermanent) {
           console.error('[FixIt] Permanent error — not retrying:', code);
           break;

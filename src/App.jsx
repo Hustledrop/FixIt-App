@@ -589,6 +589,12 @@ export default function App() {
     if (!partName) return '';
     let q = partName.trim();
 
+    // SHORT QUERY BYPASS: if already 2-5 words and no filler patterns, return as-is
+    // New AI prompt generates short purchasable queries — don't mangle them
+    const wordCount = q.split(/\s+/).length;
+    const hasFillerPattern = /passend|Ersatzteil|kompatibel|für das|für den|für die|zur Reparatur|zum Modell/i.test(q);
+    if (wordCount <= 5 && !hasFillerPattern) return q;
+
     // 1. Strip ALL parenthetical content (prices, conditions, explanations)
     q = q.replace(/\([^)]*\)/gi, '');
 
@@ -1034,9 +1040,12 @@ export default function App() {
             const savedProb    = problemRef.current;
             return (
               <div style={{...s.card,background:isKeyIssue?'rgba(232,178,26,0.06)':'rgba(232,82,26,0.06)',borderColor:isKeyIssue?'rgba(232,178,26,0.25)':'rgba(232,82,26,0.2)',animation:'fadeIn .4s ease'}}>
-                <div style={{fontSize:'1.5rem',textAlign:'center',marginBottom:12}}>{isKeyIssue?'⚙️':isNetworkErr?'📡':'🔧'}</div>
+                <div style={{fontSize:'1.5rem',textAlign:'center',marginBottom:12}}>{isKeyIssue?'⚙️':errCode==='rate_limited'?'⏱️':errCode==='timeout'?'⌛':isNetworkErr?'📡':'🔧'}</div>
                 <div style={{fontSize:'1rem',fontWeight:800,textAlign:'center',marginBottom:8}}>
-                  {isKeyIssue?t('aiNoKey'):t('aiUnavailable')}
+                  {isKeyIssue ? t('aiNoKey') :
+                    errCode==='rate_limited' ? (lang==='de'?'Tageslimit erreicht':lang==='tr'?'Günlük limit doldu':lang==='pl'?'Osiągnięto dzienny limit':'Daily limit reached') :
+                    errCode==='timeout'      ? (lang==='de'?'Analyse hat zu lange gedauert':lang==='tr'?'Analiz çok uzun sürdü':lang==='pl'?'Analiza trwała zbyt długo':'Analysis timed out') :
+                    t('aiUnavailable')}
                 </div>
                 <div style={{fontSize:'0.86rem',color:C.m,textAlign:'center',lineHeight:1.65,marginBottom:savedProb?8:16}}>
                   {isKeyIssue?t('aiNoKeyDesc'):(lang==='de'?'Bitte nochmals versuchen. Deine Eingabe wird erneut gesendet.':lang==='tr'?'Lütfen tekrar dene. Giriş yeniden gönderilecek.':lang==='pl'?'Spróbuj ponownie. Twoje dane zostaną przesłane ponownie.':'Please try again. Your input will be resent.')}
@@ -1110,7 +1119,7 @@ export default function App() {
                         <span style={{fontSize:'2rem',flexShrink:0}}>{st.emoji||'🔧'}</span>
                         <div style={{flex:1}}>
                           <div style={{fontSize:'0.6rem',fontWeight:700,color:C.o,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:3}}>{t('step')} {i+1} {t('of')} {r.steps.length}</div>
-                          <div style={{fontSize:'0.78rem',color:C.m,lineHeight:1.4}}>{st.imageQuery||st.title}</div>
+                          <div style={{fontSize:'0.78rem',color:C.m,lineHeight:1.4}}>{st.title}</div>
                         </div>
                         {googleImgUrl && (
                           <button onClick={()=>window.open(googleImgUrl, '_blank', 'noopener,noreferrer')} style={{background:'rgba(26,95,232,0.15)',border:'1px solid rgba(26,95,232,0.3)',borderRadius:8,padding:'6px 10px',color:C.bl,fontSize:'0.65rem',fontWeight:700,cursor:'pointer',whiteSpace:'nowrap',flexShrink:0,fontFamily:'inherit'}}>
@@ -1137,7 +1146,8 @@ export default function App() {
               <div style={{display:'flex',flexWrap:'wrap'}}>{r.tools.map((tool,i)=><span key={i} onClick={()=>window.open(`https://www.amazon.com/s?k=${encodeURIComponent(tool)}`, '_blank', 'noopener,noreferrer')} style={{padding:'5px 11px',borderRadius:100,fontSize:'0.7rem',fontWeight:600,background:'rgba(26,95,232,0.12)',color:C.bl,border:'1px solid rgba(26,95,232,0.2)',cursor:'pointer',margin:3}}>{tool} →</span>)}</div>
             </div>}
             {r.partsNeeded?.length>0 && <div style={{...s.card,background:'rgba(232,82,26,0.04)',borderColor:'rgba(232,82,26,0.15)'}}>
-              <div style={{fontSize:'0.62rem',fontWeight:700,color:C.o,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:8}}>{ct.parts}</div>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}><div style={{fontSize:'0.62rem',fontWeight:700,color:C.o,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:0}}>{ct.parts}</div>
+              <div style={{fontSize:'0.6rem',color:'rgba(255,178,36,0.65)',fontStyle:'italic'}}>{lang==='de'?'Suchvorschläge':lang==='tr'?'Arama önerileri':lang==='pl'?'Sugestie':'Search suggestions'}</div></div>
               <div style={{display:'flex',flexWrap:'wrap'}}>{r.partsNeeded.map((p,i)=><span key={i} onClick={()=>{
                       const cat2=curFix==='car'?'car':curFix==='tech'?'tech':curFix==='appliances'?'appliances':curFix==='garden'?'garden':curFix==='pets'?'pets':'home';
                        const cq2 = cleanProductSearchQuery(p,'',cat2,'','');
@@ -1145,6 +1155,12 @@ export default function App() {
                        setPResults({ q: cq2, vehicle: '', hsnModel: '', searchQ: cq2, isHSN: false, category: cat2, fromDiagnosis: true });
                       goto('parts');
                     }} style={{padding:'5px 11px',borderRadius:100,fontSize:'0.7rem',fontWeight:600,background:'rgba(232,82,26,0.12)',color:C.o,border:'1px solid rgba(232,82,26,0.2)',cursor:'pointer',margin:3}}>{p} →</span>)}</div>
+              <div style={{fontSize:'0.65rem',color:'rgba(255,255,255,0.25)',marginTop:8,lineHeight:1.5}}>
+                {lang==='de'?'Bitte Modellnummer prüfen oder altes Teil vergleichen, bevor Sie Ersatzteile kaufen.':
+                 lang==='tr'?'Satın almadan önce model numarasını veya eski parçayı kontrol edin.':
+                 lang==='pl'?'Sprawdź numer modelu lub porównaj stary element przed zakupem.':
+                 'Please verify your model number or compare the old part before buying.'}
+              </div>
             </div>}
             {r.proTip && <div style={{...s.card,background:'rgba(232,178,26,0.05)',borderColor:'rgba(232,178,26,0.2)'}}>
               <div style={{fontSize:'0.62rem',fontWeight:700,color:C.y,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:8}}>{t('expertTip')}</div>
@@ -1400,18 +1416,23 @@ export default function App() {
             </div>
           )}
           {!bizLoading && bizError && (
-            <div style={{textAlign:'center',padding:'28px 20px'}}>
-              <div style={{fontSize:'1.8rem',marginBottom:10}}>{bizError==='empty'?'🔍':'⚠️'}</div>
-              <div style={{fontSize:'0.88rem',fontWeight:700,marginBottom:4}}>
-                {bizError==='empty'?t('noResults'):t('couldNotLoad')}
+            <div style={{...s.card,textAlign:'center',padding:'20px 16px'}}>
+              <div style={{fontSize:'1.4rem',marginBottom:8}}>{bizError==='empty'?'🔍':'📡'}</div>
+              <div style={{fontSize:'0.85rem',fontWeight:700,marginBottom:4}}>
+                {bizError==='empty'
+                  ? (lang==='de'?`Kein ${catLabels[mapCat]} in der Nähe gefunden`:lang==='tr'?`Yakında ${catLabels[mapCat]} bulunamadı`:lang==='pl'?`Nie znaleziono ${catLabels[mapCat]} w pobliżu`:`No nearby ${catLabels[mapCat]} found`)
+                  : (lang==='de'?'Ergebnisse konnten nicht geladen werden':lang==='tr'?'Sonuçlar yüklenemedi':lang==='pl'?'Nie udało się załadować wyników':'Could not load results')}
               </div>
-              <div style={{fontSize:'0.75rem',color:C.m,marginBottom:14}}>
-                {bizError==='empty'?t('noResultsDesc'):t('couldNotLoadDesc')}
+              <div style={{fontSize:'0.72rem',color:C.m,marginBottom:14,lineHeight:1.5}}>
+                {lang==='de'?'Google Maps zeigt alle Optionen in deiner Nähe.':
+                 lang==='tr'?'Google Maps yakınımdaki tüm seçenekleri gösterir.':
+                 lang==='pl'?'Google Maps pokaże wszystkie opcje w pobliżu.':
+                 'Google Maps shows all nearby options.'}
               </div>
               <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap'}}>
-                {bizError==='error'&&<button onClick={()=>lat&&setNearbyBump(b=>b+1)} style={{...s.btn,width:'auto',padding:'10px 18px'}}>{t('tryAgain')}</button>}
+                {bizError==='error'&&<button onClick={()=>lat&&setNearbyBump(b=>b+1)} style={{...s.btn,...s.btnSec,width:'auto',padding:'10px 16px',fontSize:'0.78rem'}}>{t('retryBtn')||'↻ '+(lang==='de'?'Erneut versuchen':lang==='tr'?'Tekrar dene':lang==='pl'?'Spróbuj ponownie':'Try again')}</button>}
                 <button onClick={()=>window.open(mu(`${catMapsQ[mapCat]||catLabels[mapCat]}`), '_blank', 'noopener,noreferrer')}
-                  style={{...s.btn,...s.btnSec,width:'auto',padding:'10px 18px'}}>
+                  style={{...s.btn,width:'auto',padding:'10px 18px'}}>
                   {t('openGoogleMaps')}
                 </button>
               </div>
