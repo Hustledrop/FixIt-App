@@ -119,6 +119,225 @@ function extractVehicleFromText(text) {
   return { make, model, generation, engine, year };
 }
 
+// ── Intelligent vehicle-aware part suggestion engine ─────────────────────────
+// Given a detected vehicle and the diagnosed part type, returns 3-4 specific
+// purchasable search queries that are far more useful than generic part names.
+// This runs BEFORE the AI's partsNeeded — if it returns results, they replace
+// the AI's generic suggestions for automotive category repairs.
+
+function detectPartType(probText) {
+  const t = (probText || '').toLowerCase();
+  if (/batter|batterie|akku|accumul|12v|springt nicht an|démarre pas|no arranca|doesn.?t start|won.?t start|dead battery|batteria/.test(t)) return 'battery';
+  if (/bremse|brake|brems|frein|freio|freno|schleif|grind|squeal|quietsch|pad|scheib|disc|rotor/.test(t)) return 'brakes';
+  if (/zündkerz|spark plug|bougie|bujía|candela|misfire|zündu|fehlzündung/.test(t)) return 'sparkplugs';
+  if (/ölfilter|oil filter|filtre huile|filtro aceite|filtro olio|ölwechsel|oil change/.test(t)) return 'oilfilter';
+  if (/scheibenwischer|wiper|essuie-glace|limpiaparabrisas|tergicristallo|wisch/.test(t)) return 'wipers';
+  if (/kupplung|clutch|embrayage|embrague|frizione|slip|durchdreh|rutscht/.test(t)) return 'clutch';
+  if (/luftfilter|air filter|filtre air|filtro aire|filtro aria/.test(t)) return 'airfilter';
+  if (/glühkerz|glow plug|bougie prechauffage|calentador|candeletta/.test(t)) return 'glowplugs';
+  if (/stoßdämpfer|shock absorber|amortisseur|amortiguador|ammortizzatore|feather|feder/.test(t)) return 'shocks';
+  if (/riemen|belt|courroie|correa|cinghia|timing|zahnriemen/.test(t)) return 'belt';
+  return null; // unknown — let AI handle it
+}
+
+function isDiesel(engine) {
+  if (!engine) return null; // unknown
+  return /TDI|CDI|HDi|dCi|TDCi|CDTI|CRDi|BlueHDi|CDTI|diesel|dsel|\bd\b/i.test(engine);
+}
+
+function isLargeSUVorExecutive(make, model) {
+  if (!model) return false;
+  const m = model.toUpperCase();
+  // SUVs, estates, vans, executive sedans — tend to need larger batteries
+  return /X[3-7]|GLC|GLE|GLS|Q[5-8]|A[6-8]|TOUAREG|TIGUAN|PHAETON|PASSAT|MONDEO|INSIGNIA|SUPERB|OCTAVIA.*[23]|KODIAQ|KAROQ|TUCSON|SANTA|KUGA|GALAXY|S-MAX|TRANSIT|TRANSPORTER|T[5-7]|SPRINTER|VITO|RAV4|LAND CRUISER|DISCOVERY|RANGE ROVER/.test(m);
+}
+
+function isCompact(make, model) {
+  if (!model) return false;
+  const m = model.toUpperCase();
+  return /POLO|FIESTA|CORSA|CLIO|YARIS|AYGO|MICRA|PICANTO|RIO|FABIA|IBIZA|UP|TWINGO|C1|107|108|208/.test(m);
+}
+
+function isMidSize(make, model) {
+  if (!model) return false;
+  const m = model.toUpperCase();
+  // C/D-segment hatchbacks and sedans — Golf, Focus, Astra, etc.
+  return /GOLF|FOCUS|ASTRA|MEGANE|LEON|OCTAVIA|C-CLASS|A4|A3|3ER|3[0-9]{2}[DI]|C[12][0-9]{2}|CIVIC|COROLLA|AURIS/.test(m);
+}
+
+function hasStartStop(engine, year) {
+  // Most vehicles from 2012+ have start-stop → need AGM/EFB
+  const y = parseInt(year || '0');
+  if (y >= 2012) return true;
+  // TDI, TSI, CDI from 2010+ very likely have start-stop
+  if (y >= 2010 && /TDI|TSI|CDI|HDi/i.test(engine || '')) return true;
+  // Modern engine codes with NO year: TDI/TSI/CDI/BlueHDi all imply start-stop era
+  // (these designations weren't used on pre-start-stop vehicles)
+  if (!year && /TDI|TSI|TFSI|CDI|HDi|dCi|BlueHDi|EcoBoost/i.test(engine || '')) return true;
+  return false; // older or unknown — default to standard battery
+}
+
+function vehicleBatteryAh(make, model, engine, year) {
+  const large  = isLargeSUVorExecutive(make, model);
+  const small  = isCompact(make, model);
+  const mid    = isMidSize(make, model);
+  const diesel = isDiesel(engine);
+  // Large SUVs and executive cars
+  if (large && diesel)  return '95Ah';
+  if (large)            return '80Ah';
+  // Small compacts (Polo, Fiesta, etc.)
+  if (small && !diesel) return '60Ah';
+  if (small)            return '70Ah';
+  // Mid-size (Golf, Focus, A4, etc.)
+  if (mid && diesel)    return '70Ah';
+  if (mid)              return '60Ah';
+  // Unknown / default
+  return diesel ? '80Ah' : '70Ah';
+}
+
+function vehiclePartSuggestions(vehicleCtx, partType, rawProbText) {
+  if (!vehicleCtx || !partType) return null;
+
+  const { make, model, generation, engine, year } = vehicleCtx;
+  const M = (model || '').toUpperCase();
+  const G = (generation || '').toUpperCase();
+  // Short vehicle label for query prefix (keep under 12 chars for good search results)
+  const vShort = [model || make, G || ''].filter(Boolean).join(' ').trim().slice(0, 20);
+  const vFull  = [make, model, G].filter(Boolean).join(' ').trim();
+
+  // ── BATTERY ────────────────────────────────────────────────────────────────
+  if (partType === 'battery') {
+    // Diesel/AGM check: use engine field OR fallback to raw problem text keywords
+    const rawUpper   = (rawProbText || '').toUpperCase();
+    const dieselInText = /CDI|TDI|HDi|DIESEL|DIESELMOTOR/i.test(rawUpper);
+    const ah      = vehicleBatteryAh(make, model, engine || (dieselInText ? 'CDI' : null), year);
+    const ss      = hasStartStop(engine || (dieselInText ? 'CDI' : null), year);
+    const diesel  = isDiesel(engine) || dieselInText || null;
+    const batType = ss ? 'AGM' : 'EFB';
+    const altType = ss ? 'EFB' : 'Standard';
+
+    if (ss) {
+      return [
+        `${vShort} AGM Batterie ${ah}`,
+        `Varta AGM ${ah} ${vShort}`,
+        `Bosch AGM Start Stop ${ah} ${make}`,
+        `Exide AGM ${ah} ${vShort}`,
+      ];
+    } else {
+      return [
+        `${vShort} Batterie ${ah}`,
+        `Varta Silver Dynamic ${ah} ${make}`,
+        `Bosch S4 ${ah} ${make}`,
+        `Banner Running Bull ${ah} ${vShort}`,
+      ];
+    }
+  }
+
+  // ── BRAKES ─────────────────────────────────────────────────────────────────
+  if (partType === 'brakes') {
+    const gen = G || model || make;
+    return [
+      `${vShort} Bremsbeläge vorne`,
+      `Brembo ${vShort} Bremsscheiben vorne`,
+      `TRW ${vShort} Bremsbeläge`,
+      `${vShort} Bremsscheibe ${gen}`,
+    ];
+  }
+
+  // ── SPARK PLUGS ────────────────────────────────────────────────────────────
+  if (partType === 'sparkplugs') {
+    const diesel = isDiesel(engine);
+    if (diesel) {
+      // Diesel → glow plugs, not spark plugs
+      return [
+        `${vShort} Glühkerzen`,
+        `Bosch Glühkerze ${vShort}`,
+        `NGK Glühkerze ${vShort}`,
+        `Beru Glühkerze ${make} ${model || ''}`,
+      ];
+    }
+    return [
+      `${vShort} Zündkerzen`,
+      `NGK Zündkerze ${vShort}`,
+      `Bosch Zündkerze ${vShort}`,
+      `Champion Zündkerze ${vShort}`,
+    ];
+  }
+
+  // ── OIL FILTER ─────────────────────────────────────────────────────────────
+  if (partType === 'oilfilter') {
+    return [
+      `${vShort} Ölfilter`,
+      `Mann Filter ${vShort}`,
+      `Bosch Ölfilter ${vShort}`,
+      `Mahle Ölfilter ${make} ${model || ''}`,
+    ];
+  }
+
+  // ── WIPERS ─────────────────────────────────────────────────────────────────
+  if (partType === 'wipers') {
+    return [
+      `${vShort} Scheibenwischer`,
+      `Bosch Aerotwin ${vShort}`,
+      `Valeo Wischer ${vShort}`,
+      `${vShort} Wischblatt vorne`,
+    ];
+  }
+
+  // ── CLUTCH ─────────────────────────────────────────────────────────────────
+  if (partType === 'clutch') {
+    return [
+      `${vShort} Kupplungssatz`,
+      `Sachs Kupplung ${vShort}`,
+      `LuK Kupplungskit ${vShort}`,
+      `Valeo Kupplung ${make} ${model || ''}`,
+    ];
+  }
+
+  // ── AIR FILTER ─────────────────────────────────────────────────────────────
+  if (partType === 'airfilter') {
+    return [
+      `${vShort} Luftfilter`,
+      `Mann Filter Luft ${vShort}`,
+      `Bosch Luftfilter ${vShort}`,
+      `Mahle LX Luftfilter ${vShort}`,
+    ];
+  }
+
+  // ── GLOW PLUGS ─────────────────────────────────────────────────────────────
+  if (partType === 'glowplugs') {
+    return [
+      `${vShort} Glühkerzen`,
+      `Bosch Glühkerze ${vShort}`,
+      `NGK Glühkerze ${vShort}`,
+      `Beru Glühkerze ${vShort}`,
+    ];
+  }
+
+  // ── SHOCKS ─────────────────────────────────────────────────────────────────
+  if (partType === 'shocks') {
+    return [
+      `${vShort} Stoßdämpfer vorne`,
+      `Bilstein ${vShort} Stoßdämpfer`,
+      `Sachs Stoßdämpfer ${vShort}`,
+      `KYB Excel-G ${make} ${model || ''}`,
+    ];
+  }
+
+  // ── TIMING/DRIVE BELT ──────────────────────────────────────────────────────
+  if (partType === 'belt') {
+    return [
+      `${vShort} Zahnriemen Satz`,
+      `Contitech ${vShort} Zahnriemenkit`,
+      `Gates ${vShort} Zahnriemen`,
+      `INA Steuerkettenkit ${vShort}`,
+    ];
+  }
+
+  return null; // partType not in table — fall through to AI
+}
+
+
 // ── Single Anthropic call with its own 55s AbortController ──────────────────
 async function callAnthropic(apiKey, content, attemptNum) {
   const TIMEOUT_MS = 55000; // 55s — Vercel Pro allows 60s, give 5s buffer
@@ -199,8 +418,20 @@ module.exports = async function handler(req, res) {
 
   // Extract vehicle context from problem text (regex-first, instant)
   const vehicleCtx = cat === 'car' ? extractVehicleFromText(prob) : null;
-  console.log('[FixIt] REQUEST cat=%s lang=%s hasText=%s hasImage=%s vehicle=%s prob=%s',
-    cat, lang2, hasText, hasImage, vehicleCtx ? JSON.stringify(vehicleCtx) : 'none', prob.slice(0, 60));
+
+  // Intelligent part suggestion — detect what part is needed and generate
+  // vehicle-specific search queries from the knowledge table (no AI, no paid API)
+  const partType          = cat === 'car' ? detectPartType(prob) : null;
+  const intelligentParts  = vehicleCtx && partType
+    ? vehiclePartSuggestions(vehicleCtx, partType, prob)
+    : null;
+
+  console.log('[FixIt] REQUEST cat=%s lang=%s hasText=%s hasImage=%s vehicle=%s partType=%s intelligentParts=%s prob=%s',
+    cat, lang2, hasText, hasImage,
+    vehicleCtx ? JSON.stringify(vehicleCtx) : 'none',
+    partType || 'none',
+    intelligentParts ? JSON.stringify(intelligentParts) : 'none',
+    prob.slice(0, 60));
 
   if (!hasText && !hasImage) {
     return res.status(400).json({ error: 'no_input', version: DEPLOY_VERSION });
@@ -256,11 +487,17 @@ module.exports = async function handler(req, res) {
       `Be specific and expert. Name the exact component. Use real tool names (Torx T20, 13mm socket). Max 4 steps. Diagnosis under 90 words.`,
 
       // Build vehicle-aware partsNeeded instruction
-      ...(vehicleCtx ? [
+      // When intelligentParts exist: force the AI to use them exactly (pre-computed from knowledge table)
+      // When vehicle known but no table match: instruct AI to generate vehicle-specific queries
+      // When no vehicle: use generic short-query rules
+      ...(intelligentParts ? [
+        `DETECTED VEHICLE: ${[vehicleCtx.year, vehicleCtx.make, vehicleCtx.model, vehicleCtx.generation, vehicleCtx.engine].filter(Boolean).join(' ')}.`,
+        `partsNeeded REQUIRED: You MUST use EXACTLY this pre-computed list as your partsNeeded array. Do not change it, do not add generic alternatives, do not modify the order: ${JSON.stringify(intelligentParts)}. These are vehicle-specific search suggestions generated from a fitment knowledge base. Copy them exactly into the partsNeeded field.`,
+      ] : vehicleCtx ? [
         `DETECTED VEHICLE: ${[vehicleCtx.year, vehicleCtx.make, vehicleCtx.model, vehicleCtx.generation, vehicleCtx.engine].filter(Boolean).join(' ')}. Use this for vehicle-specific part search queries.`,
-        `partsNeeded RULES — VEHICLE-SPECIFIC MODE: generate 2–4 SHORT PURCHASABLE SEARCH QUERIES using the detected vehicle. Each must be 3–6 words max. Format: VehicleModel+Brand+PartType or VehicleModel+PartType+Spec. GOOD examples for Golf 7 battery: ["Golf 7 AGM Batterie 70Ah","Varta AGM 70Ah Golf 7","Bosch Start Stop Batterie Golf 7","Golf 7 EFB 70Ah"]. GOOD for BMW 320d brakes: ["BMW F30 Bremsscheiben vorne","Brembo 320d Bremsbeläge","BMW F30 Bremsscheibe 300mm"]. Rules: include vehicle model/generation in EVERY query, include at least one aftermarket brand (Brembo, Bosch, Varta, NGK, Febi, Sachs, etc.), include at least one generic fallback with vehicle name. NEVER say "passend für", "Ersatzteil für", "kompatibel mit". Never write sentences. These are SEARCH SUGGESTIONS only — not confirmed fitment.`,
+        `partsNeeded RULES — VEHICLE-SPECIFIC MODE: generate 2–4 SHORT PURCHASABLE SEARCH QUERIES using the detected vehicle. Each must be 3–6 words max. Include vehicle model/generation in EVERY query, include at least one aftermarket brand (Brembo, Bosch, Varta, NGK, Febi, Sachs). NEVER say "passend für", "Ersatzteil für". Never write sentences. SEARCH SUGGESTIONS only — not confirmed fitment.`,
       ] : [
-        `partsNeeded RULES — generate 2–4 SHORT PURCHASABLE SEARCH QUERIES, not descriptions. Each must be 2–5 words max. Format: Brand+PartType or Universal+PartType+size. GOOD: ["Geberit Spülkasten Dichtung","Grohe Ablaufventil","Universal WC Flapper 63mm"]. BAD: ["Ablaufventil-Dichtung passend zum Spülkasten-Modell","Ersatzteil für tropfenden Wasserhahn"]. Include: 1 brand-specific option, 1 universal/generic fallback. Never write sentences. Never add "passend für", "Ersatzteil für", "kompatibel mit".`,
+        `partsNeeded RULES — generate 2–4 SHORT PURCHASABLE SEARCH QUERIES, not descriptions. Each must be 2–5 words max. Format: Brand+PartType or Universal+PartType+size. GOOD: ["Geberit Spülkasten Dichtung","Grohe Ablaufventil","Universal WC Flapper 63mm"]. BAD: ["Ablaufventil-Dichtung passend zum Spülkasten-Modell"]. Include: 1 brand-specific option, 1 universal/generic fallback. Never write sentences. Never add "passend für", "Ersatzteil für".`,
       ]),
 
       `estimatedCost: realistic DIY parts cost only, in the currency of ${countryName}. Format: "€5–15". timeEstimate: realistic hands-on time.`,
@@ -388,6 +625,14 @@ module.exports = async function handler(req, res) {
   }
 
   // ── 9. Return ───────────────────────────────────────────────────────────────
+  // If intelligent parts were computed, ALWAYS use them — overrides AI output.
+  // This is the guarantee that vehicle-specific suggestions are actually returned,
+  // regardless of whether the AI followed the prompt instruction.
+  if (intelligentParts) {
+    parsed.partsNeeded = intelligentParts;
+    console.log('[FixIt] PARTS_OVERRIDE: using intelligent parts for partType=%s vehicle=%s',
+      partType, vehicleCtx ? vehicleCtx.make + ' ' + (vehicleCtx.model || '') : 'none');
+  }
   parsed._version = DEPLOY_VERSION;
   if (vehicleCtx) parsed._vehicleCtx = vehicleCtx; // expose for UI compatibility warning
   const dur = Date.now() - t0;
