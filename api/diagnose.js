@@ -1,7 +1,7 @@
 // api/diagnose.js — v6 — 55s timeout, AbortError retry, improved logs
 // DEPLOY_VERSION logged synchronously before ANY async code
 
-const DEPLOY_VERSION = 'diagnose-v6-timeout-fix';
+const DEPLOY_VERSION = 'diagnose-v6-timeout-55s-retry';
 
 // ── In-memory rate limit (MVP) ────────────────────────────────────────────────
 const RL = new Map();
