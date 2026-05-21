@@ -177,6 +177,8 @@ export default function App() {
   const [showPWA, setShowPWA]     = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [onboardSlide, setOnboardSlide] = useState(0);
+  const [totalSaved, setTotalSaved]   = useState(() => LS.get('totalSaved') || 0);
+  const [profile, setProfile]         = useState(() => LS.get('profile') || null); // {vehicles:[], home:{}}
   const problemRef = useRef('');
   const diagCategoryRef = useRef('home'); // category of CURRENT diagnosis
   const aiMsgTimer = useRef(null);
@@ -429,16 +431,34 @@ export default function App() {
     setPrevScr('fix-now');
     setFeedback(null);
     goto('result');
-    await diagnose({ problem: prob, photoB64: override ? null : photoB64, photoMime: override ? null : photoMime, category: curFix, lang, countryName: cd.name });
+    await diagnose({ problem: prob, photoB64: override ? null : photoB64, photoMime: override ? null : photoMime, category: curFix, lang, countryName: cd.name, userProfile: profile });
   }
 
   function saveToHistory(result, prob) {
     if (!result) return;
+    // Parse estimatedCost into a number for savings tracking
+    // Format: "€5–15", "£10–25", "$8" — extract midpoint
+    function parseSaving(costStr) {
+      if (!costStr) return 0;
+      const nums = (costStr.match(/[\d]+/g) || []).map(Number);
+      if (nums.length === 0) return 0;
+      if (nums.length === 1) return nums[0];
+      return Math.round((nums[0] + nums[nums.length-1]) / 2); // midpoint
+    }
+    const savedAmt = parseSaving(result.estimatedCost);
+    const prevSaved = LS.get('totalSaved') || 0;
+    const newTotal  = prevSaved + savedAmt;
+    LS.set('totalSaved', newTotal);
+    setTotalSaved(newTotal);
+
     const entry = {
       id: Date.now(),
       problem: prob || problemRef.current || 'Photo diagnosis',
       diagnosis: result.diagnosis?.substring(0, 120),
       confidence: result.confidence,
+      estimatedCost: result.estimatedCost || '',
+      savedAmt,
+      category: curFix,
       date: new Date().toISOString(),
       cc,
       fixed: null,
@@ -457,26 +477,81 @@ export default function App() {
 
   async function handleShare() {
     const r = aiResult;
-    const text = r ? `FixIt Diagnosis: ${r.status}\n${r.diagnosis}\nTime: ${r.timeEstimate}\nCost: ${r.estimatedCost}` : 'Check out FixIt!';
-    if (navigator.share) {
-      try { await navigator.share({ title: 'FixIt Repair Guide', text, url: window.location.href }); return; }
-      catch (_) {}
-    }
+    if (!r) return;
+
+    // Build share text
+    const savedLine = r.estimatedCost ? (
+      lang==='de' ? `Ich habe ${r.estimatedCost} gespart!` :
+      lang==='tr' ? `${r.estimatedCost} tasarruf ettim!` :
+      lang==='pl' ? `Zaoszczędziłem ${r.estimatedCost}!` :
+      `I saved ${r.estimatedCost}!`
+    ) : '';
+    const shareText = [
+      lang==='de' ? '🔧 Gerade selbst repariert mit FixIt!' :
+      lang==='tr' ? '🔧 FixIt ile kendim tamir ettim!' :
+      lang==='pl' ? '🔧 Sam naprawiłem z FixIt!' :
+      '🔧 Just fixed it myself with FixIt!',
+      savedLine,
+      r.status || '',
+      `fixit-app.vercel.app`,
+    ].filter(Boolean).join('\n');
+
+    // Try canvas share card first, fall back to text share
     try {
-      await navigator.clipboard.writeText(text);
-      showToast('✅ Copied!');
-    } catch (_) {
-      showToast('📋 Copy failed');
+      const canvas = document.createElement('canvas');
+      canvas.width = 1080; canvas.height = 1080;
+      const ctx = canvas.getContext('2d');
+      // Background
+      const grad = ctx.createLinearGradient(0, 0, 1080, 1080);
+      grad.addColorStop(0, '#1f0c00'); grad.addColorStop(1, '#0A0908');
+      ctx.fillStyle = grad; ctx.fillRect(0, 0, 1080, 1080);
+      // Orange accent bar
+      ctx.fillStyle = '#E8521A'; ctx.fillRect(0, 0, 8, 1080);
+      // FIXIT logo
+      ctx.font = 'bold 80px system-ui'; ctx.fillStyle = '#ffffff';
+      ctx.fillText('FIX', 80, 130);
+      ctx.fillStyle = '#E8521A'; ctx.fillText('IT', 248, 130);
+      // Emoji + status
+      ctx.font = '120px system-ui'; ctx.fillText('🔧', 80, 320);
+      ctx.font = 'bold 56px system-ui'; ctx.fillStyle = '#4ade80';
+      ctx.fillText(lang==='de'?'Problem behoben!':lang==='tr'?'Problem çözüldü!':lang==='pl'?'Naprawione!':'Fixed it!', 80, 420);
+      // Problem
+      const prob = (problemRef.current || '').substring(0, 45);
+      ctx.font = '36px system-ui'; ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.fillText(prob, 80, 490);
+      // Savings
+      if (r.estimatedCost) {
+        ctx.font = 'bold 100px system-ui'; ctx.fillStyle = '#4ade80';
+        ctx.fillText(r.estimatedCost, 80, 640);
+        ctx.font = 'bold 36px system-ui'; ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.fillText(lang==='de'?'gespart':lang==='tr'?'tasarruf':lang==='pl'?'zaoszczędzone':'saved', 80, 700);
+      }
+      // URL
+      ctx.font = '28px system-ui'; ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      ctx.fillText('fixit-app.vercel.app', 80, 1020);
+
+      canvas.toBlob(async blob => {
+        if (blob && navigator.share && navigator.canShare?.({ files: [new File([blob], 'fixit.png', {type:'image/png'})] })) {
+          await navigator.share({ files: [new File([blob], 'fixit.png', {type:'image/png'})], title: 'FixIt', text: shareText });
+        } else if (blob) {
+          // Download the image
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = 'fixit-repair.png';
+          a.click();
+          // Also try text share
+          if (navigator.share) await navigator.share({ title: 'FixIt', text: shareText, url: window.location.href });
+        } else if (navigator.share) {
+          await navigator.share({ title: 'FixIt', text: shareText, url: window.location.href });
+        }
+      }, 'image/png');
+    } catch (e) {
+      // Final fallback: copy to clipboard
+      try { await navigator.clipboard.writeText(shareText + '\n' + window.location.href); setToast('✅ Copied!'); }
+      catch (_) {}
     }
   }
 
-  // Build a clean, current search query from the AI diagnosis result.
-  // NEVER uses old vInput/pInput from a previous session.
-  // Clean AI-generated part names into real buyable product queries
-  // Removes: "ggf.", "falls defekt", "optional", parenthetical conditions, etc.
-  // Extract a searchable product name from AI noise phrases.
-  // Handles cases like "Kein Ersatzteil nötig – nur Ladegerät erforderlich" → "Ladegerät"
-  // or "Keine Teile nötig – nur Multimeter" → "Multimeter"
   function extractSearchableProduct(raw, category) {
     if (!raw) return '';
     const s = raw.trim();
@@ -753,7 +828,16 @@ export default function App() {
           </div>
         </div>
         <div style={{fontSize:'0.78rem',color:C.m,marginBottom:3}}>{greeting}</div>
-        <div style={{fontSize:'1.3rem',fontWeight:800,marginBottom:16}}>{t('welcome')}</div>
+        <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:16}}>
+          <div style={{fontSize:'1.3rem',fontWeight:800}}>{t('welcome')}</div>
+          {totalSaved > 0 && (
+            <div style={{background:'rgba(26,158,92,0.15)',border:'1px solid rgba(26,158,92,0.3)',
+              borderRadius:100,padding:'3px 10px',fontSize:'0.7rem',fontWeight:700,color:C.g,
+              display:'flex',alignItems:'center',gap:4,whiteSpace:'nowrap'}}>
+              💰 {lang==='de'?'Gespart':lang==='tr'?'Tasarruf':lang==='pl'?'Zaoszczędzono':'Saved'}: <span style={{fontWeight:800}}>€{totalSaved}</span>
+            </div>
+          )}
+        </div>
         <div onClick={()=>openFix('home')} style={{background:'rgba(255,255,255,0.06)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:16,padding:'14px 16px',display:'flex',alignItems:'center',gap:10,color:C.m,cursor:'pointer'}}>
           🔍 <span>{t('descProblem')}</span>
         </div>
@@ -770,14 +854,18 @@ export default function App() {
                   <div style={{fontSize:'0.72rem',color:C.m,marginBottom:6}}>{h.diagnosis}</div>
                   <div style={{display:'flex',alignItems:'center',gap:8}}>
                     <span style={{fontSize:'0.65rem',color:C.m}}>{new Date(h.date).toLocaleDateString()}</span>
-                    {h.fixed===true && <span style={{fontSize:'0.65rem',color:C.g}}>✅ Fixed</span>}
-                    {h.fixed===false && <span style={{fontSize:'0.65rem',color:C.r}}>❌ Not fixed</span>}
+                    {h.fixed===true && <span style={{fontSize:'0.65rem',color:C.g}}>{lang==='de'?'✅ Behoben':lang==='tr'?'✅ Çözüldü':lang==='pl'?'✅ Naprawiono':'✅ Fixed'}</span>}
+                    {h.fixed===false && <span style={{fontSize:'0.65rem',color:C.r}}>{lang==='de'?'❌ Nicht behoben':lang==='tr'?'❌ Çözülmedi':lang==='pl'?'❌ Nie naprawiono':'❌ Not fixed'}</span>}
                     <button onClick={()=>{problemRef.current=h.problem;setCurFix('home');setShowHistory(false);goto('result');diagnose({problem:h.problem,category:'home',lang,countryName:cd.name});}} style={{marginLeft:'auto',background:C.o,border:'none',borderRadius:8,padding:'4px 10px',color:'#fff',fontSize:'0.65rem',fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>{lang==='de'?'Erneut':'Try again'}</button>
                   </div>
                 </div>
               ))}
               {history.length === 0 && <div style={{textAlign:'center',color:C.m,padding:'20px 0'}}>No repairs yet</div>}
-              <button onClick={()=>{setHistory([]);LS.set('history',[]);}} style={{...s.btn,...s.btnSec,marginTop:8,fontSize:'0.78rem',padding:'10px'}}>{lang==='de'?'Verlauf löschen':lang==='tr'?'Geçmişi temizle':lang==='pl'?'Wyczyść historię':'Clear history'}</button>
+              {totalSaved > 0 && <div style={{background:'rgba(26,158,92,0.1)',border:'1px solid rgba(26,158,92,0.2)',borderRadius:10,padding:'10px 14px',marginBottom:12,textAlign:'center'}}>
+                <div style={{fontSize:'0.65rem',color:C.m,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:2}}>{lang==='de'?'Gespart mit FixIt':lang==='tr'?'FixIt ile tasarruf':lang==='pl'?'Zaoszczędzono z FixIt':'Saved with FixIt'}</div>
+                <div style={{fontSize:'1.5rem',fontWeight:900,color:C.g}}>€{totalSaved}</div>
+              </div>}
+              <button onClick={()=>{setHistory([]);LS.set('history',[]);setTotalSaved(0);LS.set('totalSaved',0);}} style={{...s.btn,...s.btnSec,marginTop:8,fontSize:'0.78rem',padding:'10px'}}>{lang==='de'?'Verlauf löschen':lang==='tr'?'Geçmişi temizle':lang==='pl'?'Wyczyść historię':'Clear history'}</button>
             </div>
           </div>
         )}
@@ -967,9 +1055,21 @@ export default function App() {
           })()}
           {/* Results */}
           {r && !aiLoading && <div style={{animation:'fadeIn .4s ease'}}>
-            {r.safetyWarning && <div style={{...s.card,background:'rgba(214,59,47,0.08)',borderColor:'rgba(214,59,47,0.25)'}}>
-              <div style={{fontSize:'0.62rem',fontWeight:700,color:C.r,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:8}}>{t('safetyWarning')}</div>
-              <div style={{fontSize:'0.86rem',lineHeight:1.65}}>{r.safetyWarning}</div>
+            {r.safetyWarning && <div style={{
+                ...s.card,
+                background: r.warningLevel==='danger' ? 'rgba(214,59,47,0.14)' : 'rgba(214,59,47,0.06)',
+                borderColor: r.warningLevel==='danger' ? 'rgba(214,59,47,0.6)' : 'rgba(214,59,47,0.25)',
+                borderWidth: r.warningLevel==='danger' ? 2 : 1,
+              }}>
+              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+                <span style={{fontSize:'1.2rem'}}>{r.warningLevel==='danger'?'🚨':'⚠️'}</span>
+                <div style={{fontSize:'0.62rem',fontWeight:700,color:C.r,textTransform:'uppercase',letterSpacing:'0.1em'}}>
+                  {r.warningLevel==='danger'
+                    ? (lang==='de'?'SICHERHEITSWARNUNG — PROFESSIONELLE HILFE ERFORDERLICH':lang==='tr'?'GÜVENLİK UYARISI — UZMAN GEREKLİ':lang==='pl'?'OSTRZEŻENIE BEZPIECZEŃSTWA — WYMAGANY FACHOWIEC':'SAFETY WARNING — PROFESSIONAL REQUIRED')
+                    : t('safetyWarning')}
+                </div>
+              </div>
+              <div style={{fontSize:'0.86rem',lineHeight:1.7,color:r.warningLevel==='danger'?'rgba(255,255,255,0.9)':C.t}}>{r.safetyWarning}</div>
             </div>}
             <div style={{...s.card,background:'rgba(26,158,92,0.05)',borderColor:'rgba(26,158,92,0.2)'}}>
               <div style={{fontSize:'0.62rem',fontWeight:700,color:C.g,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:8}}>{t('diagnosis')}</div>
@@ -1204,6 +1304,10 @@ export default function App() {
               ))}
             </div>
           </div>
+          {/* Affiliate disclosure — shown only when shop links are visible */}
+          <div style={{textAlign:'center',padding:'12px 16px 4px',fontSize:'0.65rem',color:'rgba(255,255,255,0.2)',lineHeight:1.5}}>
+            As an Amazon Associate, FixIt may earn from qualifying purchases.
+          </div>
         </Scroll>
         <NavBar screen={screen} t={t} goto={goto}/>
         <style>{CSS}</style>
@@ -1340,6 +1444,10 @@ export default function App() {
             </div>
           </>}
 
+          {/* Affiliate disclosure — shown only when shop links are visible */}
+          <div style={{textAlign:'center',padding:'12px 16px 4px',fontSize:'0.65rem',color:'rgba(255,255,255,0.2)',lineHeight:1.5}}>
+            As an Amazon Associate, FixIt may earn from qualifying purchases.
+          </div>
         </Scroll>
         <NavBar screen={screen} t={t} goto={goto}/>
         <style>{CSS}</style>
@@ -1510,6 +1618,10 @@ export default function App() {
               ))}
             </div>
           </>}
+          {/* Affiliate disclosure — shown only when shop links are visible */}
+          <div style={{textAlign:'center',padding:'12px 16px 4px',fontSize:'0.65rem',color:'rgba(255,255,255,0.2)',lineHeight:1.5}}>
+            As an Amazon Associate, FixIt may earn from qualifying purchases.
+          </div>
         </Scroll>
         <NavBar screen={screen} t={t} goto={goto}/>
         <style>{CSS}</style>

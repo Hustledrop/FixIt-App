@@ -3,6 +3,21 @@
 
 const DEPLOY_VERSION = 'diagnose-v5-speed';
 
+// ── In-memory rate limit (MVP — resets on cold start, protects against abuse) ──
+// Per IP: max 10 diagnoses per hour. Adjust as needed.
+const RL = new Map();
+const RL_MAX  = 10;   // requests per window
+const RL_WIN  = 3600; // seconds (1 hour)
+
+function checkRateLimit(ip) {
+  const now   = Math.floor(Date.now() / 1000);
+  const entry = RL.get(ip) || { count: 0, reset: now + RL_WIN };
+  if (now > entry.reset) { entry.count = 0; entry.reset = now + RL_WIN; }
+  entry.count++;
+  RL.set(ip, entry);
+  return { ok: entry.count <= RL_MAX, remaining: Math.max(0, RL_MAX - entry.count), reset: entry.reset };
+}
+
 // detectMime at module top level — NOT inside any block or function
 function detectMime(b64) {
   if (!b64) return null;
@@ -56,6 +71,15 @@ async function run(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST')    return res.status(405).json({ error: 'method_not_allowed', version: DEPLOY_VERSION });
 
+  // ── Rate limit check ─────────────────────────────────────────────────────────
+  const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
+  const rl = checkRateLimit(clientIp);
+  res.setHeader('X-RateLimit-Remaining', rl.remaining);
+  if (!rl.ok) {
+    console.warn('[FixIt] RATE_LIMITED ip=' + clientIp);
+    return res.status(429).json({ error: 'rate_limited', message: 'Too many requests. Please wait before trying again.', version: DEPLOY_VERSION });
+  }
+
   // ── 1. Read + parse request body ─────────────────────────────────────────
   let rawBody;
   try {
@@ -73,7 +97,7 @@ async function run(req, res) {
     return res.status(400).json({ error: 'invalid_json', stage: 'parseBody', debug: e.message });
   }
 
-  const { problem, photoB64, category, langName, countryName } = body;
+  const { problem, photoB64, category, langName, countryName, userProfile } = body;
   const cat    = String(category   || 'home');
   const lang2  = String(langName   || 'English');
   const prob   = String(problem    || '').trim();
@@ -103,15 +127,58 @@ async function run(req, res) {
       console.warn('[FixIt] Image MIME unknown — text-only');
     }
   }
+  // ── SAFETY PRE-CLASSIFICATION ─────────────────────────────────────────────
+  // Detect hard-stop categories BEFORE building repair content
+  const probLower = (prob || '').toLowerCase();
+  const HARD_STOP_PATTERNS = [
+    /gas (line|pipe|leak|appliance|boiler|furnace|heater|oven|stove|cooker)/i,
+    /naturalgas|natural gas|gasleitung|gasrohr|gasherd|gasheizung/i,
+    /live (wire|mains|current|cable|electrical)/i,
+    /mains (electric|power|voltage|wiring|cable)/i,
+    /230v|240v|400v|high.?voltage|hochspannung|netzspannung/i,
+    /fuse.?box|breaker.?box|electrical.?panel|sicherungskasten|verteilerkasten/i,
+    /load.?bearing|tragende (wand|mauer)|structural (wall|beam|column|joist)/i,
+    /asbestos|asbest|lead.?pipe|bleiröhr/i,
+  ];
+  const isHardStop = HARD_STOP_PATTERNS.some(p => p.test(probLower));
+
   content.push({
     type: 'text',
     text: [
-      `You are FixIt AI. Respond with valid JSON only. No markdown. No text outside JSON. Be concise — max 3 steps, diagnosis under 100 words.`,
-      `IMPORTANT: Write ALL text fields in ${lang2} — diagnosis, causes, steps.title, steps.description, status, proTip, etc. The ONLY exception is imageQuery which must be in English. Never write English words in visible text fields when language is not English.`,
-      `Category: ${cat}. Problem: ${prob || 'analyse image'}`,
-      `Return exactly this JSON (fill every field):`,
-      `{"confidence":85,"status":"ok","difficulty":"Medium DIY","timeEstimate":"30 min","estimatedCost":"€10","warningLevel":"low","diagnosis":"cause","causes":["c1"],"safetyWarning":"","callPro":false,"proReason":"","steps":[{"title":"t","description":"d","imageQuery":"q","emoji":"🔧","tip":""}],"tools":["t"],"partsNeeded":["p"],"proTip":"tip","proSearchQuery":"service near me"}`,
-    ].join('\n'),
+      // ── CORE IDENTITY + OUTPUT FORMAT ──
+      `You are FixIt AI, an expert repair assistant. Respond with valid JSON only. No markdown. No prose. No text outside the JSON object.`,
+
+      // ── SAFETY HARD STOPS (NON-NEGOTIABLE) ──
+      `SAFETY RULES — these override everything else:`,
+      `1. If the problem involves: GAS lines, gas appliances, gas leaks → set callPro:true, warningLevel:"danger", safetyWarning in ${lang2}: explain gas work requires a licensed gas engineer, provide NO repair steps (steps:[]), tools:[], partsNeeded:[].`,
+      `2. If the problem involves: LIVE MAINS ELECTRICITY (230V/240V/400V), consumer unit, fuse box, electrical panel, fixed wiring → set callPro:true, warningLevel:"danger", safetyWarning in ${lang2}: explain mains electrical work requires a licensed electrician, provide NO steps, tools:[], partsNeeded:[].`,
+      `3. If the problem involves: STRUCTURAL elements (load-bearing walls, roof beams, foundations) → set callPro:true, warningLevel:"danger".`,
+      `4. If the problem involves: ASBESTOS or LEAD pipes → set callPro:true, warningLevel:"danger". Never provide DIY guidance.`,
+      `Low-voltage (12V, batteries, USB, EV charging at home with proper adapter) is SAFE to guide. Mains wiring is NOT.`,
+
+      // ── LANGUAGE ──
+      `Write ALL visible text in ${lang2}. Exception: imageQuery must be English keywords only (for image search). Never use English words in diagnosis, steps, causes, safetyWarning, proTip, status when the language is not English.`,
+
+      // ── SPECIFICITY REQUIREMENT ──
+      `Be specific and expert. Name the exact component, not a category. Say "pump filter cap behind the lower kick plate" not "check the filter". Use real tool names (Torx T20, 13mm socket) not generic ones. Reference model-specific quirks if known from category+problem context. Max 4 steps. Diagnosis under 90 words.`,
+
+      // ── COST + TIME ──
+      `estimatedCost: realistic DIY parts cost only (no labour), in the currency of ${countryName}. Format: "€5–15" or "£10–25". timeEstimate: realistic hands-on time.`,
+
+      // ── CATEGORY + PROBLEM ──
+      `Category: ${cat}. Problem: ${prob || 'analyse the image and diagnose the issue'}`,
+      // Inject user profile context for more specific guidance
+      ...(userProfile ? [
+        userProfile.vehicles?.length ? `User vehicles: ${userProfile.vehicles.map(v=>[v.year,v.make,v.model,v.engine].filter(Boolean).join(' ')).join(', ')}` : '',
+        userProfile.home ? `Home: ${[userProfile.home.type, userProfile.home.age, userProfile.home.country||countryName].filter(Boolean).join(', ')}` : '',
+        userProfile.appliances?.length ? `Appliances: ${userProfile.appliances.map(a=>[a.brand,a.type,a.model].filter(Boolean).join(' ')).join(', ')}` : '',
+      ].filter(Boolean) : []),
+      isHardStop ? `NOTE: This problem description matches a HARD STOP safety category. Set callPro:true and warningLevel:"danger" regardless of how the user phrased it.` : '',
+
+      // ── JSON SCHEMA ──
+      `Return exactly this JSON structure (no extra fields, no omissions):`,
+      `{"confidence":85,"status":"Diagnose in 1 sentence","difficulty":"Easy DIY","timeEstimate":"20 min","estimatedCost":"€8–15","warningLevel":"low","diagnosis":"Root cause in 1–2 sentences","causes":["cause1","cause2"],"safetyWarning":"","callPro":false,"proReason":"","steps":[{"title":"Step title","description":"Specific step with exact component names and tool sizes","imageQuery":"specific english search query for step image","emoji":"🔧","tip":""}],"tools":["Exact tool name"],"partsNeeded":["Exact part name"],"proTip":"One expert tip that a DIYer would not know","proSearchQuery":"service type near me"}`,
+    ].filter(Boolean).join('\n'),
   });
 
   // ── 4. Call Anthropic ───────────────────────────────────────────────────

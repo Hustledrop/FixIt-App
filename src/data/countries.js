@@ -72,35 +72,35 @@ const STORES = {
   car: {
     DE:[
       {n:"Autodoc.de 🚗",u:(q)=>`https://www.google.com/search?q=site%3Aautodoc.de+${encodeURIComponent(q)}`,badge:"BEST"},
-      {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?k=${encodeURIComponent(q)}`},
+      {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
       {n:"eBay.de 🛒",u:(q)=>`https://www.ebay.de/sch/i.html?_nkw=${encodeURIComponent(q)}&_sacat=0`},
       {n:"Idealo.de 💰",u:(q)=>`https://www.idealo.de/preisvergleich/MainSearchProductCategory.html?q=${encodeURIComponent(q)}`},
     ],
     AT:[
       {n:"Autodoc.at 🚗",u:(q)=>`https://www.google.com/search?q=site%3Aautodoc.de+${encodeURIComponent(q)}`,badge:"BEST"},
-      {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?k=${encodeURIComponent(q)}`},
+      {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
     ],
     CH:[
       {n:"Autodoc.ch 🚗",u:(q)=>`https://www.google.com/search?q=site%3Aautodoc.de+${encodeURIComponent(q)}`,badge:"BEST"},
-      {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?k=${encodeURIComponent(q)}`},
+      {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
     ],
     GB:[
       {n:"Autodoc.co.uk 🚗",u:(q)=>`https://www.google.com/search?q=site%3Aautodoc.co.uk+${encodeURIComponent(q)}`,badge:"BEST"},
       {n:"Euro Car Parts 🔴",u:(q)=>`https://www.eurocarparts.com/search?q=${encodeURIComponent(q)}`},
-      {n:"Amazon.co.uk 📦",u:(q)=>`https://www.amazon.co.uk/s?k=${encodeURIComponent(q)}`},
+      {n:"Amazon.co.uk 📦",u:(q)=>`https://www.amazon.co.uk/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
     ],
     FR:[
       {n:"Autodoc.fr 🚗",u:(q)=>`https://www.google.com/search?q=site%3Aautodoc.fr+${encodeURIComponent(q)}`,badge:"BEST"},
-      {n:"Amazon.fr 📦",u:(q)=>`https://www.amazon.fr/s?k=${encodeURIComponent(q)}`},
+      {n:"Amazon.fr 📦",u:(q)=>`https://www.amazon.fr/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
     ],
     US:[
       {n:"AutoZone 🔴",u:(q)=>`https://www.autozone.com/searchresult?searchtext=${encodeURIComponent(q)}`,badge:"BEST"},
-      {n:"Amazon 📦",u:(q)=>`https://www.amazon.com/s?k=${encodeURIComponent(q)}`},
+      {n:"Amazon 📦",u:(q)=>`https://www.amazon.com/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
       {n:"RockAuto 🔩",u:(q)=>`https://www.rockauto.com/en/partsearch/?query=${encodeURIComponent(q)}`},
     ],
     DEFAULT:[
       {n:"Autodoc 🚗",u:(q)=>`https://www.google.com/search?q=site%3Aautodoc.co.uk+${encodeURIComponent(q)}`,badge:"BEST"},
-      {n:"Amazon 📦",u:(q)=>`https://www.amazon.com/s?k=${encodeURIComponent(q)}`},
+      {n:"Amazon 📦",u:(q)=>`https://www.amazon.com/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
       {n:"eBay 🛒",u:(q)=>`https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(q)}&_sacat=0`},
     ],
   },
@@ -108,12 +108,12 @@ const STORES = {
     DE:[
       {n:"MediaMarkt 🔴",u:(q)=>`https://www.mediamarkt.de/de/search.html?query=${encodeURIComponent(q)}`},
       {n:"Saturn 🔵",u:(q)=>`https://www.saturn.de/de/search.html?query=${encodeURIComponent(q)}`},
-      {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?k=${encodeURIComponent(q)}`},
+      {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
       {n:"Idealo.de 💰",u:(q)=>`https://www.idealo.de/preisvergleich/MainSearchProductCategory.html?q=${encodeURIComponent(q)}`},
     ],
     AT:[
       {n:"MediaMarkt 🔴",u:(q)=>`https://www.mediamarkt.at/de/search.html?query=${encodeURIComponent(q)}`},
-      {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?k=${encodeURIComponent(q)}`},
+      {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
     ],
     CH:[
       {n:"MediaMarkt 🔴",u:(q)=>`https://www.mediamarkt.ch/de/search.html?query=${encodeURIComponent(q)}`},
@@ -121,19 +121,19 @@ const STORES = {
     ],
     GB:[
       {n:"Currys 🔵",u:(q)=>`https://www.currys.co.uk/search?q=${encodeURIComponent(q)}`},
-      {n:"Amazon.co.uk 📦",u:(q)=>`https://www.amazon.co.uk/s?k=${encodeURIComponent(q)}`},
+      {n:"Amazon.co.uk 📦",u:(q)=>`https://www.amazon.co.uk/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
     ],
     FR:[
       {n:"Fnac 🔵",u:(q)=>`https://www.fnac.com/SearchResult/ResultList.aspx?Search=${encodeURIComponent(q)}`},
       {n:"Darty 🔴",u:(q)=>`https://www.darty.com/nav/extra/search/search.html?type=SIMPLE&query=${encodeURIComponent(q)}`},
-      {n:"Amazon.fr 📦",u:(q)=>`https://www.amazon.fr/s?k=${encodeURIComponent(q)}`},
+      {n:"Amazon.fr 📦",u:(q)=>`https://www.amazon.fr/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
     ],
     US:[
       {n:"Best Buy 🔵",u:(q)=>`https://www.bestbuy.com/site/searchpage.jsp?st=${encodeURIComponent(q)}`},
-      {n:"Amazon 📦",u:(q)=>`https://www.amazon.com/s?k=${encodeURIComponent(q)}`},
+      {n:"Amazon 📦",u:(q)=>`https://www.amazon.com/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
     ],
     DEFAULT:[
-      {n:"Amazon 📦",u:(q)=>`https://www.amazon.com/s?k=${encodeURIComponent(q)}`},
+      {n:"Amazon 📦",u:(q)=>`https://www.amazon.com/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
       {n:"eBay 🛒",u:(q)=>`https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(q)}&_sacat=0`},
       {n:"Google Shopping 🔍",u:(q)=>`https://www.google.com/search?q=${encodeURIComponent(q)}&tbm=shop`},
     ],
@@ -142,55 +142,55 @@ const STORES = {
     DE:[
       {n:"OBI 🟡",u:(q)=>`https://www.google.com/search?q=site%3Aobi.de+${encodeURIComponent(q)}`},
       {n:"Bauhaus 🏗️",u:(q)=>`https://www.bauhaus.info/suche?q=${encodeURIComponent(q)}`},
-      {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?k=${encodeURIComponent(q)}`},
+      {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
       {n:"Idealo.de 💰",u:(q)=>`https://www.idealo.de/preisvergleich/MainSearchProductCategory.html?q=${encodeURIComponent(q)}`},
     ],
     AT:[
       {n:"OBI 🟡",u:(q)=>`https://www.google.com/search?q=site%3Aobi.at+${encodeURIComponent(q)}`},
       {n:"Bauhaus 🏗️",u:(q)=>`https://www.bauhaus.at/suche?q=${encodeURIComponent(q)}`},
-      {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?k=${encodeURIComponent(q)}`},
+      {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
     ],
     CH:[
       {n:"Bauhaus 🏗️",u:(q)=>`https://www.bauhaus.ch/suche?q=${encodeURIComponent(q)}`},
-      {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?k=${encodeURIComponent(q)}`},
+      {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
     ],
     GB:[
       {n:"B&Q 🟡",u:(q)=>`https://www.diy.com/search?q=${encodeURIComponent(q)}`},
       {n:"Screwfix 🔵",u:(q)=>`https://www.screwfix.com/search?q=${encodeURIComponent(q)}`},
-      {n:"Amazon.co.uk 📦",u:(q)=>`https://www.amazon.co.uk/s?k=${encodeURIComponent(q)}`},
+      {n:"Amazon.co.uk 📦",u:(q)=>`https://www.amazon.co.uk/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
     ],
     FR:[
       {n:"Leroy Merlin 🟢",u:(q)=>`https://www.leroymerlin.fr/recherche/${encodeURIComponent(q)}`},
       {n:"Castorama 🔵",u:(q)=>`https://www.castorama.fr/search?query=${encodeURIComponent(q)}`},
-      {n:"Amazon.fr 📦",u:(q)=>`https://www.amazon.fr/s?k=${encodeURIComponent(q)}`},
+      {n:"Amazon.fr 📦",u:(q)=>`https://www.amazon.fr/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
     ],
     US:[
       {n:"Home Depot 🟠",u:(q)=>`https://www.homedepot.com/s/${encodeURIComponent(q)}`,badge:"BEST"},
       {n:"Lowe's 🔵",u:(q)=>`https://www.lowes.com/search?searchTerm=${encodeURIComponent(q)}`},
-      {n:"Amazon 📦",u:(q)=>`https://www.amazon.com/s?k=${encodeURIComponent(q)}`},
+      {n:"Amazon 📦",u:(q)=>`https://www.amazon.com/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
     ],
     MK:[
       {n:"Leroy Merlin 🟢",u:(q)=>`https://www.leroymerlin.rs/pretraga?q=${encodeURIComponent(q)}`},
-      {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?k=${encodeURIComponent(q)}`},
+      {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
       {n:"eBay 🛒",u:(q)=>`https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(q)}&_sacat=0`},
     ],
     RS:[
       {n:"Leroy Merlin 🟢",u:(q)=>`https://www.leroymerlin.rs/pretraga?q=${encodeURIComponent(q)}`},
-      {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?k=${encodeURIComponent(q)}`},
+      {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
     ],
     HR:[
       {n:"Bauhaus 🏗️",u:(q)=>`https://www.bauhaus.hr/suche?q=${encodeURIComponent(q)}`},
       {n:"Leroy Merlin 🟢",u:(q)=>`https://www.leroymerlin.hr/pretraga?q=${encodeURIComponent(q)}`},
     ],
     DEFAULT:[
-      {n:"Amazon 📦",u:(q)=>`https://www.amazon.com/s?k=${encodeURIComponent(q)}`},
+      {n:"Amazon 📦",u:(q)=>`https://www.amazon.com/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
       {n:"eBay 🛒",u:(q)=>`https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(q)}&_sacat=0`},
       {n:"Google Shopping 🔍",u:(q)=>`https://www.google.com/search?q=${encodeURIComponent(q)}&tbm=shop`},
     ],
   },
   appliances: {
     DE:[
-      {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?k=${encodeURIComponent(q)}`},
+      {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
       {n:"MediaMarkt 🔴",u:(q)=>`https://www.mediamarkt.de/de/search.html?query=${encodeURIComponent(q)}`},
       {n:"Saturn 🔵",u:(q)=>`https://www.saturn.de/de/search.html?query=${encodeURIComponent(q)}`},
       {n:"Idealo.de 💰",u:(q)=>`https://www.idealo.de/preisvergleich/MainSearchProductCategory.html?q=${encodeURIComponent(q)}`},
@@ -198,14 +198,14 @@ const STORES = {
     GB:[
       {n:"Currys 🔵",u:(q)=>`https://www.currys.co.uk/search?q=${encodeURIComponent(q)}`},
       {n:"AO.com 🟡",u:(q)=>`https://ao.com/search?q=${encodeURIComponent(q)}`},
-      {n:"Amazon.co.uk 📦",u:(q)=>`https://www.amazon.co.uk/s?k=${encodeURIComponent(q)}`},
+      {n:"Amazon.co.uk 📦",u:(q)=>`https://www.amazon.co.uk/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
     ],
     US:[
       {n:"Best Buy 🔵",u:(q)=>`https://www.bestbuy.com/site/searchpage.jsp?st=${encodeURIComponent(q)}`},
-      {n:"Amazon 📦",u:(q)=>`https://www.amazon.com/s?k=${encodeURIComponent(q)}`},
+      {n:"Amazon 📦",u:(q)=>`https://www.amazon.com/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
     ],
     DEFAULT:[
-      {n:"Amazon 📦",u:(q)=>`https://www.amazon.com/s?k=${encodeURIComponent(q)}`},
+      {n:"Amazon 📦",u:(q)=>`https://www.amazon.com/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
       {n:"eBay 🛒",u:(q)=>`https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(q)}&_sacat=0`},
       {n:"Google Shopping 🔍",u:(q)=>`https://www.google.com/search?q=${encodeURIComponent(q)}&tbm=shop`},
     ],
@@ -214,18 +214,18 @@ const STORES = {
     DE:[
       {n:"OBI Garten 🌿",u:(q)=>`https://www.google.com/search?q=site%3Aobi.de+${encodeURIComponent(q)}`},
       {n:"Bauhaus Garten 🌱",u:(q)=>`https://www.bauhaus.info/suche?q=${encodeURIComponent(q)}`},
-      {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?k=${encodeURIComponent(q)}`},
+      {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
     ],
     GB:[
       {n:"B&Q Garden 🌿",u:(q)=>`https://www.diy.com/search?q=${encodeURIComponent(q)}`},
-      {n:"Amazon.co.uk 📦",u:(q)=>`https://www.amazon.co.uk/s?k=${encodeURIComponent(q)}`},
+      {n:"Amazon.co.uk 📦",u:(q)=>`https://www.amazon.co.uk/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
     ],
     US:[
       {n:"Home Depot Garden 🌿",u:(q)=>`https://www.homedepot.com/s/${encodeURIComponent(q)}`},
-      {n:"Amazon 📦",u:(q)=>`https://www.amazon.com/s?k=${encodeURIComponent(q)}`},
+      {n:"Amazon 📦",u:(q)=>`https://www.amazon.com/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
     ],
     DEFAULT:[
-      {n:"Amazon 📦",u:(q)=>`https://www.amazon.com/s?k=${encodeURIComponent(q)}`},
+      {n:"Amazon 📦",u:(q)=>`https://www.amazon.com/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
       {n:"Google Shopping 🔍",u:(q)=>`https://www.google.com/search?q=${encodeURIComponent(q)}&tbm=shop`},
     ],
   },
@@ -233,18 +233,18 @@ const STORES = {
     DE:[
       {n:"Zooplus 🐾",u:(q)=>`https://www.zooplus.de/shop/search?text=${encodeURIComponent(q)}`},
       {n:"Fressnapf 🐕",u:(q)=>`https://www.fressnapf.de/search?query=${encodeURIComponent(q)}`},
-      {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?k=${encodeURIComponent(q)}`},
+      {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
     ],
     GB:[
       {n:"Pets at Home 🐾",u:(q)=>`https://www.petsathome.com/shop/en/pets/search?q=${encodeURIComponent(q)}`},
-      {n:"Amazon.co.uk 📦",u:(q)=>`https://www.amazon.co.uk/s?k=${encodeURIComponent(q)}`},
+      {n:"Amazon.co.uk 📦",u:(q)=>`https://www.amazon.co.uk/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
     ],
     US:[
       {n:"PetSmart 🐾",u:(q)=>`https://www.petsmart.com/search/?q=${encodeURIComponent(q)}`,badge:"BEST"},
-      {n:"Amazon 📦",u:(q)=>`https://www.amazon.com/s?k=${encodeURIComponent(q)}`},
+      {n:"Amazon 📦",u:(q)=>`https://www.amazon.com/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
     ],
     DEFAULT:[
-      {n:"Amazon 📦",u:(q)=>`https://www.amazon.com/s?k=${encodeURIComponent(q)}`},
+      {n:"Amazon 📦",u:(q)=>`https://www.amazon.com/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
       {n:"Google Shopping 🔍",u:(q)=>`https://www.google.com/search?q=${encodeURIComponent(q)}&tbm=shop`},
     ],
   },
@@ -255,15 +255,15 @@ const STORES = {
       {n:"ROSE Bikes 🌹",u:(q)=>`https://www.rosebikes.de/search?q=${encodeURIComponent(q)}`},
       {n:"Bike-Discount 💰",u:(q)=>`https://www.bike-discount.de/catalogsearch/result/?q=${encodeURIComponent(q)}`},
       {n:"Decathlon 🏃",u:(q)=>`https://www.decathlon.de/search?Ntt=${encodeURIComponent(q.split(' ').slice(-2).join(' '))}`},
-      {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?k=${encodeURIComponent(q)}`},
+      {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
       {n:"eBay.de 🛒",u:(q)=>`https://www.ebay.de/sch/i.html?_nkw=${encodeURIComponent(q)}&_sacat=0`},
     ],
     GB:[
       {n:"Wiggle 🔵",u:(q)=>`https://www.wiggle.co.uk/search/?q=${encodeURIComponent(q)}`},
-      {n:"Amazon.co.uk 📦",u:(q)=>`https://www.amazon.co.uk/s?k=${encodeURIComponent(q)}`},
+      {n:"Amazon.co.uk 📦",u:(q)=>`https://www.amazon.co.uk/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
     ],
     DEFAULT:[
-      {n:"Amazon 📦",u:(q)=>`https://www.amazon.com/s?k=${encodeURIComponent(q)}`},
+      {n:"Amazon 📦",u:(q)=>`https://www.amazon.com/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
       {n:"eBay 🛒",u:(q)=>`https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(q)}&_sacat=0`},
     ],
   },

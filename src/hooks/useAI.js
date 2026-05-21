@@ -29,7 +29,7 @@ export function useAI() {
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState(null);
 
-  const diagnose = useCallback(async ({ problem, photoB64, photoMime, category, lang, countryName }) => {
+  const diagnose = useCallback(async ({ problem, photoB64, photoMime, category, lang, countryName, userProfile }) => {
     setLoading(true);
     setError(null);
     setResult(null); // clear stale result so no old language leaks
@@ -62,6 +62,7 @@ export function useAI() {
       lang:         lang || 'en',
       langName:     langFull,
       countryName:  countryName || 'Unknown',
+      userProfile:  userProfile || null,
     };
 
     const _t0 = Date.now();
