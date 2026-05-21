@@ -446,10 +446,9 @@ export default function App() {
       return Math.round((nums[0] + nums[nums.length-1]) / 2); // midpoint
     }
     const savedAmt = parseSaving(result.estimatedCost);
-    const prevSaved = LS.get('totalSaved') || 0;
-    const newTotal  = prevSaved + savedAmt;
-    LS.set('totalSaved', newTotal);
-    setTotalSaved(newTotal);
+    // NOTE: totalSaved is NOT incremented here.
+    // It is only incremented when the user confirms "Yes, fixed!" (handleFeedback).
+    // savedAmt is stored on the history entry so handleFeedback can use it.
 
     const entry = {
       id: Date.now(),
@@ -473,6 +472,18 @@ export default function App() {
     const updated = (history || []).map((h, i) => i === 0 ? {...h, fixed: val === 'fixed'} : h);
     setHistory(updated);
     LS.set('history', updated);
+
+    // Only count savings when user CONFIRMS the repair worked
+    if (val === 'fixed') {
+      const thisEntry = (history || [])[0];
+      const amt = thisEntry?.savedAmt || 0;
+      if (amt > 0) {
+        const prev = LS.get('totalSaved') || 0;
+        const next = prev + amt;
+        LS.set('totalSaved', next);
+        setTotalSaved(next);
+      }
+    }
   }
 
   async function handleShare() {
@@ -481,10 +492,10 @@ export default function App() {
 
     // Build share text
     const savedLine = r.estimatedCost ? (
-      lang==='de' ? `Ich habe ${r.estimatedCost} gespart!` :
-      lang==='tr' ? `${r.estimatedCost} tasarruf ettim!` :
-      lang==='pl' ? `Zaoszczędziłem ${r.estimatedCost}!` :
-      `I saved ${r.estimatedCost}!`
+      lang==='de' ? `Mögliches Sparpotenzial: ca. ${r.estimatedCost}` :
+      lang==='tr' ? `Tahmini tasarruf: yaklaşık ${r.estimatedCost}` :
+      lang==='pl' ? `Potencjalne oszczędności: ok. ${r.estimatedCost}` :
+      `Estimated savings: approx. ${r.estimatedCost}`
     ) : '';
     const shareText = [
       lang==='de' ? '🔧 Gerade selbst repariert mit FixIt!' :
@@ -524,7 +535,7 @@ export default function App() {
         ctx.font = 'bold 100px system-ui'; ctx.fillStyle = '#4ade80';
         ctx.fillText(r.estimatedCost, 80, 640);
         ctx.font = 'bold 36px system-ui'; ctx.fillStyle = 'rgba(255,255,255,0.5)';
-        ctx.fillText(lang==='de'?'gespart':lang==='tr'?'tasarruf':lang==='pl'?'zaoszczędzone':'saved', 80, 700);
+        ctx.fillText(lang==='de'?'Sparpotenzial (ca.)':lang==='tr'?'tahmini tasarruf':lang==='pl'?'potencjalne oszczędności':'est. savings', 80, 700);
       }
       // URL
       ctx.font = '28px system-ui'; ctx.fillStyle = 'rgba(255,255,255,0.3)';
@@ -696,27 +707,44 @@ export default function App() {
     return ''; // no match found
   }
 
-  function buildPartsQueryFromDiagnosis(result, problem, category) {
+  function buildPartsQueryFromDiagnosis(result, problem, category, vehicleCtx) {
     const parts = result?.partsNeeded || [];
     const prob  = (problem || '').trim();
+
+    // Build a compact vehicle prefix from detected context (e.g. "BMW X3 2.0d")
+    const vPrefix = vehicleCtx
+      ? [vehicleCtx.make, vehicleCtx.model, vehicleCtx.engine, vehicleCtx.year]
+          .filter(Boolean).join(' ').trim()
+      : '';
+
+    // Helper: ensure vehicle prefix is in a query (avoid duplication)
+    // Checks for make OR model first-word — so "Golf 7 AGM..." is not re-prefixed with "VW"
+    function ensureVehicle(q) {
+      if (!vPrefix || !q) return q;
+      const qUp = q.toUpperCase();
+      const vehicleTokens = [vehicleCtx?.make, (vehicleCtx?.model||'').split(' ')[0]]
+        .filter(s => s && s.length > 2);
+      const alreadyHasVehicle = vehicleTokens.some(t => qUp.includes(t.toUpperCase()));
+      return alreadyHasVehicle ? q : `${vPrefix} ${q}`;
+    }
 
     if (parts.length > 0) {
       // First try smart extraction (handles "Kein Ersatzteil – nur Ladegerät" cases)
       const smart = extractSearchableProduct(parts[0], category);
       if (smart && smart.length > 1) {
         const cleaned = cleanProductSearchQuery(smart, '', category, '', '');
-        if (cleaned && cleaned.length > 1) return cleaned;
+        if (cleaned && cleaned.length > 1) return ensureVehicle(cleaned);
       }
       // Fallback: clean the raw part name
       const first = cleanProductSearchQuery(parts[0], '', category, '', '');
-      if (first && first.length > 2) return first;
+      if (first && first.length > 2) return ensureVehicle(first);
     }
     // Convert symptom text to product query if possible
     const symQuery = symptomToProducts(prob, category, lang);
-    if (symQuery) return symQuery;
+    if (symQuery) return ensureVehicle(symQuery);
     // Last fallback: cleaned problem text
-    if (prob && prob.length < 40) return cleanProductSearchQuery(prob, '', category, '', '');
-    return category || 'repair part';
+    if (prob && prob.length < 40) return ensureVehicle(cleanProductSearchQuery(prob, '', category, '', ''));
+    return vPrefix || category || 'repair part';
   }
 
   function findParts() {
@@ -837,10 +865,15 @@ export default function App() {
         <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:16}}>
           <div style={{fontSize:'1.3rem',fontWeight:800}}>{t('welcome')}</div>
           {totalSaved > 0 && (
-            <div style={{background:'rgba(26,158,92,0.15)',border:'1px solid rgba(26,158,92,0.3)',
-              borderRadius:100,padding:'3px 10px',fontSize:'0.7rem',fontWeight:700,color:C.g,
-              display:'flex',alignItems:'center',gap:4,whiteSpace:'nowrap'}}>
-              💰 {lang==='de'?'Gespart':lang==='tr'?'Tasarruf':lang==='pl'?'Zaoszczędzono':'Saved'}: <span style={{fontWeight:800}}>€{totalSaved}</span>
+            <div style={{display:'flex',flexDirection:'column',gap:2}}>
+              <div style={{background:'rgba(26,158,92,0.12)',border:'1px solid rgba(26,158,92,0.25)',
+                borderRadius:100,padding:'3px 10px',fontSize:'0.68rem',fontWeight:600,color:C.g,
+                display:'flex',alignItems:'center',gap:4,whiteSpace:'nowrap'}}>
+                💰 {lang==='de'?'Sparpotenzial':lang==='tr'?'Tahmini tasarruf':lang==='pl'?'Potencjalne oszczędności':'Est. savings'}: <span style={{fontWeight:800}}>ca. €{totalSaved}</span>
+              </div>
+              <div style={{fontSize:'0.55rem',color:'rgba(255,255,255,0.2)',textAlign:'center',lineHeight:1.3}}>
+                {lang==='de'?'Schätzung. Keine Garantie.':lang==='tr'?'Tahmin. Garanti değil.':lang==='pl'?'Szacunek. Brak gwarancji.':'Estimate. No guarantee.'}
+              </div>
             </div>
           )}
         </div>
@@ -867,9 +900,10 @@ export default function App() {
                 </div>
               ))}
               {history.length === 0 && <div style={{textAlign:'center',color:C.m,padding:'20px 0'}}>No repairs yet</div>}
-              {totalSaved > 0 && <div style={{background:'rgba(26,158,92,0.1)',border:'1px solid rgba(26,158,92,0.2)',borderRadius:10,padding:'10px 14px',marginBottom:12,textAlign:'center'}}>
-                <div style={{fontSize:'0.65rem',color:C.m,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:2}}>{lang==='de'?'Gespart mit FixIt':lang==='tr'?'FixIt ile tasarruf':lang==='pl'?'Zaoszczędzono z FixIt':'Saved with FixIt'}</div>
-                <div style={{fontSize:'1.5rem',fontWeight:900,color:C.g}}>€{totalSaved}</div>
+              {totalSaved > 0 && <div style={{background:'rgba(26,158,92,0.08)',border:'1px solid rgba(26,158,92,0.18)',borderRadius:10,padding:'10px 14px',marginBottom:12,textAlign:'center'}}>
+                <div style={{fontSize:'0.65rem',color:C.m,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:2}}>{lang==='de'?'Mögliches Sparpotenzial mit FixIt':lang==='tr'?'FixIt ile tahmini tasarruf':lang==='pl'?'Potencjalne oszczędności z FixIt':'Estimated savings with FixIt'}</div>
+                <div style={{fontSize:'1.5rem',fontWeight:900,color:C.g}}>ca. €{totalSaved}</div>
+                <div style={{fontSize:'0.6rem',color:'rgba(255,255,255,0.22)',marginTop:4}}>{lang==='de'?'Schätzung basierend auf typischen Reparaturkosten. Keine Garantie.':lang==='tr'?'Tipik onarım maliyetlerine göre tahmin. Garanti yoktur.':lang==='pl'?'Szacunek oparty na typowych kosztach naprawy. Bez gwarancji.':'Estimate based on typical repair costs. No guarantee.'}</div>
               </div>}
               <button onClick={()=>{setHistory([]);LS.set('history',[]);setTotalSaved(0);LS.set('totalSaved',0);}} style={{...s.btn,...s.btnSec,marginTop:8,fontSize:'0.78rem',padding:'10px'}}>{lang==='de'?'Verlauf löschen':lang==='tr'?'Geçmişi temizle':lang==='pl'?'Wyczyść historię':'Clear history'}</button>
             </div>
@@ -1093,13 +1127,28 @@ export default function App() {
                   </button>
                 </div>
               )}
+              {r._vehicleCtx && (
+                <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:8}}>
+                  <div style={{background:'rgba(26,95,232,0.12)',border:'1px solid rgba(26,95,232,0.2)',
+                    borderRadius:100,padding:'4px 10px',fontSize:'0.65rem',fontWeight:700,
+                    color:'rgba(100,149,237,0.9)',display:'flex',alignItems:'center',gap:5}}>
+                    <span>🚗</span>
+                    <span>{[r._vehicleCtx.make,r._vehicleCtx.model,r._vehicleCtx.generation,r._vehicleCtx.engine,r._vehicleCtx.year].filter(Boolean).join(' ')}</span>
+                  </div>
+                  <div style={{fontSize:'0.6rem',color:'rgba(255,255,255,0.22)'}}>
+                    {lang==='de'?'erkannt':lang==='tr'?'algılandı':lang==='pl'?'wykryto':'detected'}
+                  </div>
+                </div>
+              )}
               {r.causes?.length>0 && <div style={{marginBottom:10}}>
                 <div style={{fontSize:'0.62rem',fontWeight:700,color:C.m,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:6}}>{t('possibleCauses')}</div>
                 {r.causes.map((c,i)=><div key={i} style={{display:'flex',gap:8,alignItems:'center',marginBottom:4}}><span style={{fontSize:'0.6rem',color:C.g,flexShrink:0}}>◆</span><span style={{fontSize:'0.8rem',color:'rgba(240,237,232,0.8)'}}>{c}</span></div>)}
               </div>}
               <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
                 <span style={{padding:'5px 11px',borderRadius:100,fontSize:'0.7rem',fontWeight:600,background:'rgba(26,158,92,0.12)',color:C.g,border:'1px solid rgba(26,158,92,0.2)'}}>⏱ {r.timeEstimate}</span>
-                <span style={{padding:'5px 11px',borderRadius:100,fontSize:'0.7rem',fontWeight:600,background:'rgba(232,82,26,0.12)',color:C.o,border:'1px solid rgba(232,82,26,0.2)'}}>💰 {r.estimatedCost}</span>
+                <span style={{padding:'5px 11px',borderRadius:100,fontSize:'0.7rem',fontWeight:600,background:'rgba(26,158,92,0.1)',color:C.g,border:'1px solid rgba(26,158,92,0.2)'}}>
+                  💰 {lang==='de'?'Sparpotenzial ca.':lang==='tr'?'Tahmini tasarruf':lang==='pl'?'Potencjał oszczędności':'Est. saving'} {r.estimatedCost}
+                </span>
                 {r.difficulty && <span style={{padding:'5px 11px',borderRadius:100,fontSize:'0.7rem',fontWeight:600,background:'rgba(26,158,92,0.1)',color:C.g,border:'1px solid rgba(26,158,92,0.2)'}}>{r.difficulty}</span>}
               </div>
             </div>
@@ -1156,10 +1205,18 @@ export default function App() {
                       goto('parts');
                     }} style={{padding:'5px 11px',borderRadius:100,fontSize:'0.7rem',fontWeight:600,background:'rgba(232,82,26,0.12)',color:C.o,border:'1px solid rgba(232,82,26,0.2)',cursor:'pointer',margin:3}}>{p} →</span>)}</div>
               <div style={{fontSize:'0.65rem',color:'rgba(255,255,255,0.25)',marginTop:8,lineHeight:1.5}}>
-                {lang==='de'?'Bitte Modellnummer prüfen oder altes Teil vergleichen, bevor Sie Ersatzteile kaufen.':
-                 lang==='tr'?'Satın almadan önce model numarasını veya eski parçayı kontrol edin.':
-                 lang==='pl'?'Sprawdź numer modelu lub porównaj stary element przed zakupem.':
-                 'Please verify your model number or compare the old part before buying.'}
+                {r._vehicleCtx ? (
+                  lang==='de'
+                    ? `Suchvorschläge für ${[r._vehicleCtx.make, r._vehicleCtx.model, r._vehicleCtx.engine].filter(Boolean).join(' ')}. Bitte vor dem Kauf über Fahrgestellnummer, vorhandenes Teile-Etikett oder Fahrzeughandbuch prüfen.`
+                    : lang==='tr'
+                    ? `${[r._vehicleCtx.make, r._vehicleCtx.model, r._vehicleCtx.engine].filter(Boolean).join(' ')} için arama önerileri. Satın almadan önce şasi numarası veya mevcut parça etiketi ile doğrulayın.`
+                    : `Search suggestions for ${[r._vehicleCtx.make, r._vehicleCtx.model, r._vehicleCtx.engine].filter(Boolean).join(' ')}. Verify compatibility via VIN, existing part label, or vehicle manual before buying.`
+                ) : (
+                  lang==='de'?'Bitte Modellnummer prüfen oder altes Teil vergleichen, bevor Sie Ersatzteile kaufen.':
+                  lang==='tr'?'Satın almadan önce model numarasını veya eski parçayı kontrol edin.':
+                  lang==='pl'?'Sprawdź numer modelu lub porównaj stary element przed zakupem.':
+                  'Please verify your model number or compare the old part before buying.'
+                )}
               </div>
             </div>}
             {r.proTip && <div style={{...s.card,background:'rgba(232,178,26,0.05)',borderColor:'rgba(232,178,26,0.2)'}}>
@@ -1196,12 +1253,19 @@ export default function App() {
                   const cat = curFix==='car'?'car':curFix==='tech'?'tech':curFix==='appliances'?'appliances':curFix==='garden'?'garden':curFix==='pets'?'pets':'home';
                   setVType(cat);
                   // Build query from CURRENT diagnosis — never reuse old parts search
-                  const diagQuery = buildPartsQueryFromDiagnosis(r, problemRef.current, curFix);
+                  const detectedVehicle = r._vehicleCtx;
+                  const diagQuery = buildPartsQueryFromDiagnosis(r, problemRef.current, curFix, detectedVehicle);
+                  // Build the vehicle label string for the vInput field
+                  const vehicleLabel = detectedVehicle
+                    ? [detectedVehicle.make, detectedVehicle.model, detectedVehicle.engine, detectedVehicle.year].filter(Boolean).join(' ')
+                    : '';
                   setPInput(diagQuery);
-                  setVInput(''); // clear any old vehicle input
+                  setVInput(vehicleLabel); // populate vehicle field with detected vehicle
                   setHsnModel('');
+                  setVType('car');
                   // Pre-populate pResults so parts are immediately visible
-                  setPResults({ q: diagQuery, vehicle: '', hsnModel: '', searchQ: diagQuery, isHSN: false, category: cat, fromDiagnosis: true });
+                  const fullSearchQ = diagQuery; // vehicle already in diagQuery via ensureVehicle
+                  setPResults({ q: diagQuery, vehicle: vehicleLabel, hsnModel: '', searchQ: fullSearchQ, isHSN: false, category: cat, fromDiagnosis: true, vehicleCtx: detectedVehicle });
                   goto('parts');
                 }} style={s.btn}>{ct.partsBtn}</button>
                 <button onClick={()=>window.open(mu(proQ), '_blank', 'noopener,noreferrer')} style={{...s.btn,...s.btnSec}}>{ct.proBtn}</button>
@@ -1556,12 +1620,30 @@ export default function App() {
                 </div>
                 <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
                   {aiResult.partsNeeded.map((part,pi)=>(
-                    <span key={pi} onClick={()=>{const cq=cleanProductSearchQuery(part,'',pResults.category||vType,'','');setPInput(cq);setPResults({...pResults, q:cq, searchQ:cq});}}
+                    <span key={pi} onClick={()=>{
+                        const cq = cleanProductSearchQuery(part,'',pResults.category||vType,'','');
+                        // Prepend vehicle if it is not already in the cleaned query
+                        const vc = pResults.vehicleCtx;
+                        const vcStr = vc ? [vc.make, vc.model, vc.engine].filter(Boolean).join(' ') : '';
+                        const vehicleTokens = [vc?.make, (vc?.model||'').split(' ')[0]].filter(s => s && s.length > 2);
+                        const alreadyHasVehicle = !vcStr || vehicleTokens.some(t => cq.toUpperCase().includes(t.toUpperCase()));
+                        const finalQ = alreadyHasVehicle ? cq : `${vcStr} ${cq}`;
+                        setPInput(cq);
+                        setPResults({...pResults, q:finalQ, searchQ:finalQ});
+                      }}
                       style={{padding:'6px 12px',borderRadius:100,fontSize:'0.75rem',fontWeight:600,cursor:'pointer',margin:2,
                         background:pResults.q===cleanProductSearchQuery(part,'',pResults.category||vType,'','')?C.o:'rgba(232,82,26,0.12)',
                         color:pResults.q===cleanProductSearchQuery(part,'',pResults.category||vType,'','')?'#fff':C.o,
                         border:`1px solid ${pResults.q===cleanProductSearchQuery(part,'',pResults.category||vType,'','')?C.o:'rgba(232,82,26,0.2)'}`}}>
-                      {cleanProductSearchQuery(part,'',pResults.category||vType,'','')||part}
+                      {(()=>{
+                          const cq = cleanProductSearchQuery(part,'',pResults.category||vType,'','');
+                          const vc = pResults.vehicleCtx;
+                          const vcStr = vc ? [vc.make, vc.model, vc.engine].filter(Boolean).join(' ') : '';
+                          if (!vcStr) return cq || part;
+                          const vcTokens = [vc?.make, (vc?.model||'').split(' ')[0]].filter(s => s && s.length > 2);
+                          const alreadyHas = !vcStr || vcTokens.some(t => cq.toUpperCase().includes(t.toUpperCase()));
+                          return alreadyHas ? (cq || part) : `${vcStr} ${cq || part}`;
+                        })()}
                     </span>
                   ))}
                 </div>
@@ -1588,6 +1670,23 @@ export default function App() {
                 {lang==='de'?'Tipp: Modell oben ergänzen für exakte Teilesuche.':'Tip: Add the model above for exact part search.'}
               </div>}
             </div>}
+            {/* VIN compatibility warning — shown when vehicle was auto-detected */}
+            {pResults.vehicleCtx && pResults.fromDiagnosis && (
+              <div style={{display:'flex',alignItems:'flex-start',gap:8,
+                background:'rgba(251,191,36,0.06)',border:'1px solid rgba(251,191,36,0.2)',
+                borderRadius:10,padding:'10px 14px',marginBottom:10}}>
+                <span style={{fontSize:'1rem',flexShrink:0}}>⚠️</span>
+                <div style={{fontSize:'0.68rem',color:'rgba(255,255,255,0.55)',lineHeight:1.6}}>
+                  {lang==='de'
+                    ? `Suchvorschläge für ${[pResults.vehicleCtx.make, pResults.vehicleCtx.model, pResults.vehicleCtx.engine].filter(Boolean).join(' ')}. Bitte vor dem Kauf über Fahrgestellnummer, vorhandenes Teile-Etikett oder Fahrzeughandbuch prüfen.`
+                    : lang==='tr'
+                    ? `${[pResults.vehicleCtx.make, pResults.vehicleCtx.model, pResults.vehicleCtx.engine].filter(Boolean).join(' ')} için arama önerileri. Satın almadan önce şasi numarası veya mevcut parça etiketi ile doğrulayın.`
+                    : lang==='pl'
+                    ? `Sugestie wyszukiwania dla ${[pResults.vehicleCtx.make, pResults.vehicleCtx.model, pResults.vehicleCtx.engine].filter(Boolean).join(' ')}. Przed zakupem sprawdź numer VIN, etykietę istniejącej części lub podręcznik pojazdu.`
+                    : `Search suggestions for ${[pResults.vehicleCtx.make, pResults.vehicleCtx.model, pResults.vehicleCtx.engine].filter(Boolean).join(' ')}. Please verify compatibility via VIN, existing part label, or vehicle manual before buying.`}
+                </div>
+              </div>
+            )}
             {/* LOKALE GESCHÄFTE — real nearby stores via Google Maps, NOT online shops */}
             <div style={{...s.card,background:'rgba(26,158,92,0.05)',borderColor:'rgba(26,158,92,0.2)',marginBottom:10}}>
               <div style={{fontSize:'0.62rem',fontWeight:700,color:C.g,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:10}}>
