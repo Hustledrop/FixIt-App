@@ -1,7 +1,7 @@
 // api/diagnose.js — v6 — 55s timeout, AbortError retry, improved logs
 // DEPLOY_VERSION logged synchronously before ANY async code
 
-const DEPLOY_VERSION = 'diagnose-v7-json-repair-rl-fix';
+const DEPLOY_VERSION = 'diagnose-v8-no-parse-500';
 
 // ── In-memory rate limit (MVP) ────────────────────────────────────────────────
 const RL = new Map();
@@ -589,8 +589,16 @@ module.exports = async function handler(req, res) {
   s = s.replace(/```json/gi, '').replace(/```/g, '').trim();
   const first = s.indexOf('{'), last = s.lastIndexOf('}');
   if (first === -1 || last === -1 || last <= first) {
-    console.error('[FixIt] STAGE_FAILED: noBraces — cleaned:', s.slice(0, 300));
-    return res.status(500).json({ error: 'no_braces', debug: s.slice(0, 300), version: DEPLOY_VERSION });
+    // Claude returned text with no JSON object (apology, explanation, etc.)
+    // Log the raw text and return a 200 fallback — never 500 for this case.
+    console.error('[FixIt] NO_BRACES_FALLBACK — raw has no JSON object. First300: %s', s.slice(0, 300));
+    console.error('[FixIt] RAW_NO_BRACES_PREVIEW:', rawText.slice(0, 600));
+    const fb = makeFallback('no_braces');
+    console.log('[FixIt] JSON_PARSE_UNRECOVERABLE_FALLBACK_RETURNED HTTP_STATUS=200 fallback=true reason=no_braces');
+    if (intelligentParts) fb.partsNeeded = intelligentParts;
+    fb._version = DEPLOY_VERSION;
+    if (vehicleCtx) fb._vehicleCtx = vehicleCtx;
+    return res.status(200).json(fb);
   }
   s = s.slice(first, last + 1);
   s = s.replace(/[\u201c\u201d\u201e\u201f]/g, '"').replace(/[\u2018\u2019]/g, "'");
@@ -715,10 +723,14 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    // Fallback: return 200 with structured fallback — never 500 for parse failure
+    // Fallback: return 200 with structured fallback — NEVER 500 for parse failure
     if (!recovered) {
-      console.error('[FixIt] JSON_PARSE_UNRECOVERABLE — returning safe fallback 200');
-      parsed = makeFallback('json_parse_failed');
+      const fb = makeFallback('json_parse_failed');
+      console.error('[FixIt] JSON_PARSE_UNRECOVERABLE_FALLBACK_RETURNED HTTP_STATUS=200 fallback=true reason=json_parse_failed');
+      if (intelligentParts) fb.partsNeeded = intelligentParts;
+      fb._version = DEPLOY_VERSION;
+      if (vehicleCtx) fb._vehicleCtx = vehicleCtx;
+      return res.status(200).json(fb);
     }
   }
 
