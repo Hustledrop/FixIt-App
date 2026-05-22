@@ -360,7 +360,7 @@ async function callAnthropic(apiKey, content, attemptNum) {
       },
       body: JSON.stringify({
         model:       'claude-sonnet-4-6',
-        max_tokens:  1000,
+        max_tokens:  1200,
         temperature: 0,
         messages:    [{ role: 'user', content }],
       }),
@@ -689,7 +689,7 @@ module.exports = async function handler(req, res) {
       try {
         const repairPayload = {
           model:       'claude-sonnet-4-6',
-          max_tokens:  1000,
+          max_tokens:  1200,
           temperature: 0,
           messages: [{
             role: 'user',
