@@ -1,7 +1,7 @@
 // api/diagnose.js — v6 — 55s timeout, AbortError retry, improved logs
 // DEPLOY_VERSION logged synchronously before ANY async code
 
-const DEPLOY_VERSION = 'diagnose-v6-timeout-55s-retry';
+const DEPLOY_VERSION = 'diagnose-v9-speed';
 
 // ── In-memory rate limit (MVP) ────────────────────────────────────────────────
 const RL = new Map();
@@ -360,7 +360,7 @@ async function callAnthropic(apiKey, content, attemptNum) {
       },
       body: JSON.stringify({
         model:       'claude-sonnet-4-6',
-        max_tokens:  1200,
+        max_tokens:  800,
         temperature: 0,
         messages:    [{ role: 'user', content }],
       }),
@@ -390,12 +390,20 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') { res.status(200).end(); return; }
   if (req.method !== 'POST')    return res.status(405).json({ error: 'method_not_allowed', version: DEPLOY_VERSION });
 
-  // ── Rate limit ─────────────────────────────────────────────────────────────
+  // ── Rate limit — checked here but NOT charged yet ─────────────────────────
+  // We only CONSUME a token when Anthropic actually responds (below).
+  // Failed JSON parses, timeouts, and server errors do NOT count against quota.
   const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
-  const rl = checkRateLimit(clientIp);
-  res.setHeader('X-RateLimit-Remaining', rl.remaining);
-  if (!rl.ok) {
-    console.warn('[FixIt] RATE_LIMITED ip=%s', clientIp);
+  // Peek-only check (read current count without incrementing)
+  const rlPeek = (() => {
+    const now   = Math.floor(Date.now() / 1000);
+    const entry = RL.get(clientIp) || { count: 0, reset: now + RL_WIN };
+    if (now > entry.reset) return { ok: true, remaining: RL_MAX };
+    return { ok: entry.count < RL_MAX, remaining: Math.max(0, RL_MAX - entry.count) };
+  })();
+  res.setHeader('X-RateLimit-Remaining', rlPeek.remaining);
+  if (!rlPeek.ok) {
+    console.warn('[FixIt] RATE_LIMITED ip=%s remaining=%d', clientIp, rlPeek.remaining);
     return res.status(429).json({ error: 'rate_limited', message: 'Too many requests. Please wait before trying again.', version: DEPLOY_VERSION });
   }
 
@@ -473,7 +481,7 @@ module.exports = async function handler(req, res) {
   content.push({
     type: 'text',
     text: [
-      `You are FixIt AI, an expert repair assistant. Respond with valid JSON only. No markdown. No prose. No text outside the JSON object.`,
+      `You are FixIt AI. Respond with ONE valid JSON object only — no markdown, no text outside the braces. First char: { Last char: }.`,
 
       `SAFETY RULES — these override everything else:`,
       `1. If the problem involves: GAS lines, gas appliances, gas leaks → set callPro:true, warningLevel:"danger", safetyWarning in ${lang2}: explain gas work requires a licensed gas engineer, provide NO repair steps (steps:[]), tools:[], partsNeeded:[].`,
@@ -495,9 +503,9 @@ module.exports = async function handler(req, res) {
         `partsNeeded REQUIRED: You MUST use EXACTLY this pre-computed list as your partsNeeded array. Do not change it, do not add generic alternatives, do not modify the order: ${JSON.stringify(intelligentParts)}. These are vehicle-specific search suggestions generated from a fitment knowledge base. Copy them exactly into the partsNeeded field.`,
       ] : vehicleCtx ? [
         `DETECTED VEHICLE: ${[vehicleCtx.year, vehicleCtx.make, vehicleCtx.model, vehicleCtx.generation, vehicleCtx.engine].filter(Boolean).join(' ')}. Use this for vehicle-specific part search queries.`,
-        `partsNeeded RULES — VEHICLE-SPECIFIC MODE: generate 2–4 SHORT PURCHASABLE SEARCH QUERIES using the detected vehicle. Each must be 3–6 words max. Include vehicle model/generation in EVERY query, include at least one aftermarket brand (Brembo, Bosch, Varta, NGK, Febi, Sachs). NEVER say "passend für", "Ersatzteil für". Never write sentences. SEARCH SUGGESTIONS only — not confirmed fitment.`,
+        `partsNeeded: 2–4 vehicle-specific search terms using detected vehicle. Include model in each. Include 1 brand (Brembo/Bosch/Varta/NGK). No sentences. SEARCH SUGGESTIONS only.`,
       ] : [
-        `partsNeeded RULES — generate 2–4 SHORT PURCHASABLE SEARCH QUERIES, not descriptions. Each must be 2–5 words max. Format: Brand+PartType or Universal+PartType+size. GOOD: ["Geberit Spülkasten Dichtung","Grohe Ablaufventil","Universal WC Flapper 63mm"]. BAD: ["Ablaufventil-Dichtung passend zum Spülkasten-Modell"]. Include: 1 brand-specific option, 1 universal/generic fallback. Never write sentences. Never add "passend für", "Ersatzteil für".`,
+        `partsNeeded: 2–4 SHORT buyable search terms, 2–5 words each. GOOD: ["Geberit Spülkasten Dichtung","Universal WC Flapper 63mm"]. BAD: ["Ablaufventil passend zum Modell"]. No sentences. No "passend für".`,
       ]),
 
       `estimatedCost: realistic DIY parts cost only, in the currency of ${countryName}. Format: "€5–15". timeEstimate: realistic hands-on time.`,
@@ -510,8 +518,8 @@ module.exports = async function handler(req, res) {
       ].filter(Boolean) : []),
       isHardStop ? `NOTE: This matches a HARD STOP safety category. Set callPro:true and warningLevel:"danger" regardless.` : '',
 
-      `Return exactly this JSON structure:`,
-      `{"confidence":85,"status":"Diagnose in 1 sentence","difficulty":"Easy DIY","timeEstimate":"20 min","estimatedCost":"€8–15","warningLevel":"low","diagnosis":"Root cause in 1–2 sentences","causes":["cause1","cause2"],"safetyWarning":"","callPro":false,"proReason":"","steps":[{"title":"Step title","description":"Specific step with exact component names and tool sizes","imageQuery":"specific english search query for step image","emoji":"🔧","tip":""}],"tools":["Exact tool name"],"partsNeeded":["Brand PartType","Universal PartType size"],"proTip":"One expert tip a DIYer would not know","proSearchQuery":"service type near me"}`,
+      `Output ONLY the JSON object below, nothing else:`,
+      `{"confidence":85,"status":"","difficulty":"","timeEstimate":"","estimatedCost":"","warningLevel":"low","diagnosis":"","causes":[],"safetyWarning":"","callPro":false,"proReason":"","steps":[{"title":"","description":"","imageQuery":"","emoji":"🔧","tip":""}],"tools":[],"partsNeeded":[],"proTip":"","proSearchQuery":""}`,
     ].filter(Boolean).join('\n'),
   });
 
@@ -566,7 +574,13 @@ module.exports = async function handler(req, res) {
       return res.status(500).json({ error: 'no_text', debug: JSON.stringify(envelope).slice(0, 300), version: DEPLOY_VERSION });
     }
 
-    console.log('[FixIt] RAW_FIRST_500:', rawText.slice(0, 500));
+    const rawLen = rawText.length;
+    console.log('[FixIt] RAW_FIRST_500 (len=%d):', rawLen, rawText.slice(0, 500));
+
+    // ── Charge rate limit token NOW (only on real Anthropic success) ──────────
+    const rlResult = checkRateLimit(clientIp);
+    console.log('[FixIt] RATE_LIMIT_CHARGED ip=%s remaining=%d', clientIp, rlResult.remaining);
+    res.setHeader('X-RateLimit-Remaining', rlResult.remaining);
     break; // success
   }
 
@@ -575,8 +589,16 @@ module.exports = async function handler(req, res) {
   s = s.replace(/```json/gi, '').replace(/```/g, '').trim();
   const first = s.indexOf('{'), last = s.lastIndexOf('}');
   if (first === -1 || last === -1 || last <= first) {
-    console.error('[FixIt] STAGE_FAILED: noBraces — cleaned:', s.slice(0, 300));
-    return res.status(500).json({ error: 'no_braces', debug: s.slice(0, 300), version: DEPLOY_VERSION });
+    // Claude returned text with no JSON object (apology, explanation, etc.)
+    // Log the raw text and return a 200 fallback — never 500 for this case.
+    console.error('[FixIt] NO_BRACES_FALLBACK — raw has no JSON object. First300: %s', s.slice(0, 300));
+    console.error('[FixIt] RAW_NO_BRACES_PREVIEW:', rawText.slice(0, 600));
+    const fb = makeFallback('no_braces');
+    console.log('[FixIt] JSON_PARSE_UNRECOVERABLE_FALLBACK_RETURNED HTTP_STATUS=200 fallback=true reason=no_braces');
+    if (intelligentParts) fb.partsNeeded = intelligentParts;
+    fb._version = DEPLOY_VERSION;
+    if (vehicleCtx) fb._vehicleCtx = vehicleCtx;
+    return res.status(200).json(fb);
   }
   s = s.slice(first, last + 1);
   s = s.replace(/[\u201c\u201d\u201e\u201f]/g, '"').replace(/[\u2018\u2019]/g, "'");
@@ -598,29 +620,117 @@ module.exports = async function handler(req, res) {
 
   console.log('[FixIt] CLEANED_FIRST_500:', s.slice(0, 500));
 
-  // ── 8. JSON.parse (with one retry on parse failure via best-effort truncation) ─
+  // ── 8. JSON.parse — with repair pass and safe fallback ──────────────────────
+  // Strategy:
+  //   Attempt 1: parse cleaned string directly
+  //   Attempt 2: truncate at error position
+  //   Attempt 3: AI repair pass (2nd Anthropic call with the broken text)
+  //   Fallback:  return structured 200 JSON — never crash with 500 on parse failure
+
+  // Safe fallback object — 200 response so frontend can show retry UI, not crash
+  function makeFallback(reason) {
+    console.error('[FixIt] FALLBACK_JSON reason=%s', reason);
+    return {
+      confidence:    50,
+      status:        lang2.includes('Deutsch') || lang2.includes('German')
+        ? 'Analyse konnte nicht vollständig verarbeitet werden'
+        : 'Analysis could not be fully processed',
+      difficulty:    'Unknown',
+      timeEstimate:  '',
+      estimatedCost: '',
+      warningLevel:  'low',
+      diagnosis:     lang2.includes('Deutsch') || lang2.includes('German')
+        ? 'Die Analyse konnte nicht korrekt verarbeitet werden. Bitte erneut versuchen.'
+        : 'The analysis could not be processed correctly. Please try again.',
+      causes:       [],
+      safetyWarning:'',
+      callPro:       false,
+      proReason:     '',
+      steps:        [],
+      tools:        [],
+      partsNeeded:  [],
+      proTip:       '',
+      proSearchQuery: '',
+      _fallback:     true,
+      _fallbackReason: reason,
+    };
+  }
+
   let parsed;
+  const parseStarted = Date.now();
+
+  // Attempt 1: direct parse
   try {
     parsed = JSON.parse(s);
-    console.log('[FixIt] JSON_PARSE_SUCCESS');
-  } catch (e) {
-    const posMatch = e.message.match(/position (\d+)/);
+    console.log('[FixIt] JSON_PARSE_SUCCESS attempt=1 dur=%dms', Date.now()-parseStarted);
+  } catch (e1) {
+    const posMatch = e1.message.match(/position (\d+)/);
     const pos = posMatch ? parseInt(posMatch[1]) : -1;
-    console.error('[FixIt] STAGE_FAILED: jsonParse msg=%s pos=%d', e.message, pos);
-    if (pos >= 0) console.error('[FixIt] JSON_ERROR_CONTEXT:', JSON.stringify(s.slice(Math.max(0, pos - 40), pos + 40)));
+    console.error('[FixIt] JSON_PARSE_FAIL attempt=1 msg=%s pos=%d rawLen=%d', e1.message, pos, s.length);
+    if (pos >= 0) console.error('[FixIt] JSON_ERROR_CONTEXT:', JSON.stringify(s.slice(Math.max(0, pos-40), pos+40)));
+    console.error('[FixIt] RAW_PREVIEW_FOR_DEBUG:', rawText.slice(0, 800));
 
-    // Best-effort: truncate at error position and close the JSON
+    // Attempt 2: truncate at error position
+    let recovered = false;
     if (pos > 50) {
       try {
         const truncated = s.slice(0, pos).replace(/,\s*$/, '') + '}}';
         parsed = JSON.parse(truncated);
-        console.warn('[FixIt] JSON_PARSE_RECOVERED via truncation at pos=%d', pos);
+        console.warn('[FixIt] JSON_PARSE_RECOVERED attempt=2 truncation pos=%d', pos);
+        recovered = true;
       } catch (_) {
-        console.error('[FixIt] JSON_PARSE_UNRECOVERABLE');
-        return res.status(500).json({ error: 'json_parse_failed', debug: e.message, position: pos, version: DEPLOY_VERSION });
+        console.warn('[FixIt] JSON_TRUNCATION_FAILED pos=%d', pos);
       }
-    } else {
-      return res.status(500).json({ error: 'json_parse_failed', debug: e.message, position: pos, version: DEPLOY_VERSION });
+    }
+
+    // Attempt 3: AI repair pass — ask Claude to fix its own malformed JSON
+    if (!recovered) {
+      console.warn('[FixIt] JSON_REPAIR_PASS_TRIGGERED rawLen=%d', rawText.length);
+      try {
+        const repairPayload = {
+          model:       'claude-sonnet-4-6',
+          max_tokens:  800,
+          temperature: 0,
+          messages: [{
+            role: 'user',
+            content: `The following text was supposed to be valid JSON but has a parse error at position ${pos}. Fix it and return ONLY the corrected valid JSON object, nothing else:\n\n${rawText.slice(0, 3000)}`,
+          }],
+        };
+        const repairController = new AbortController();
+        const repairTimer = setTimeout(() => repairController.abort(), 20000);
+        const repairRes = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+          body: JSON.stringify(repairPayload),
+          signal: repairController.signal,
+        });
+        clearTimeout(repairTimer);
+        if (repairRes.ok) {
+          const repairEnv  = await repairRes.json();
+          const repairText = repairEnv?.content?.[0]?.text || '';
+          const rf = repairText.indexOf('{'), rl = repairText.lastIndexOf('}');
+          if (rf !== -1 && rl > rf) {
+            let repairS = repairText.slice(rf, rl+1);
+            repairS = repairS.replace(/[\u201c\u201d\u201e\u201f]/g,'"').replace(/[\u2018\u2019]/g,"'");
+            repairS = repairS.replace(/,\s*([\]}])/g,'$1');
+            parsed = JSON.parse(repairS);
+            console.warn('[FixIt] JSON_REPAIR_SUCCESS attempt=3');
+            recovered = true;
+          }
+        }
+      } catch (repairErr) {
+        console.error('[FixIt] JSON_REPAIR_FAILED:', repairErr.message);
+      }
+    }
+
+    // Fallback: return 200 with structured fallback — NEVER 500 for parse failure
+    if (!recovered) {
+      const fb = makeFallback('json_parse_failed');
+      console.error('[FixIt] JSON_PARSE_UNRECOVERABLE_FALLBACK_RETURNED HTTP_STATUS=200 fallback=true reason=json_parse_failed');
+      if (intelligentParts) fb.partsNeeded = intelligentParts;
+      fb._version = DEPLOY_VERSION;
+      if (vehicleCtx) fb._vehicleCtx = vehicleCtx;
+      return res.status(200).json(fb);
     }
   }
 

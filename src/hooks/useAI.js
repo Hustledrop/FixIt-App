@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { LANGS } from '../data/lang.js';
 
 const API_URL = '/api/diagnose';
@@ -30,8 +30,11 @@ export function useAI() {
   const [result, setResult]   = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState(null);
+  const reqId = useRef(0); // stale request guard — increments on each new diagnose call
 
   const diagnose = useCallback(async ({ problem, photoB64, photoMime, category, lang, countryName, userProfile }) => {
+    // Increment request ID — any in-flight request with an older ID is stale
+    const thisReq = ++reqId.current;
     setLoading(true);
     setError(null);
     setResult(null); // clear stale result so no old language leaks
@@ -84,7 +87,19 @@ export function useAI() {
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
         const data = await callAPI(payload);
+        // Stale guard: if a newer diagnose() call has started, discard this result
+        if (thisReq !== reqId.current) {
+          console.warn(`[FixIt] Stale response discarded (req ${thisReq} < current ${reqId.current})`);
+          return null;
+        }
         console.log(`[FixIt] ✓ Success (attempt ${attempt}) in ${Date.now()-_t0}ms, confidence:`, data.confidence, 'category:', payload.category);
+        // If server returned a fallback (json_parse recovered), treat as soft error
+        if (data._fallback) {
+          console.warn('[FixIt] Server returned fallback JSON — showing retry message');
+          setError({ code: 'json_parse_fallback', debug: data._fallbackReason || 'parse_failed' });
+          setLoading(false);
+          return null;
+        }
         setResult(data);
         setLoading(false);
         return data;
@@ -97,7 +112,7 @@ export function useAI() {
         // Don't retry permanent errors (key issues, bad request)
         // Abort/timeout = deliberate, don't retry. Cold-start (function_not_found) = do retry.
         const isPermanent = ['missing_api_key', 'invalid_api_key', 'invalid_api_key_format', 'rate_limited',
-                             'invalid_json', 'empty_body', 'no_input', 'method_not_allowed',
+                             'invalid_json', 'empty_body', 'no_input', 'method_not_allowed', 'json_parse_fallback',
                              'timeout'].includes(code);
         if (isPermanent) {
           console.error('[FixIt] Permanent error — not retrying:', code);
@@ -113,6 +128,10 @@ export function useAI() {
     }
 
     // All attempts failed
+    if (thisReq !== reqId.current) {
+      console.warn('[FixIt] Stale failure discarded (req was superseded)');
+      return null;
+    }
     const code  = lastErr?.code  || 'network';
     const debug = lastErr?.debug || lastErr?.message || 'Unknown error';
     console.error('[FixIt] All attempts failed — category:', payload.category, '| code:', code, '| debug:', debug);

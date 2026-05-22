@@ -1074,11 +1074,12 @@ export default function App() {
             const savedProb    = problemRef.current;
             return (
               <div style={{...s.card,background:isKeyIssue?'rgba(232,178,26,0.06)':'rgba(232,82,26,0.06)',borderColor:isKeyIssue?'rgba(232,178,26,0.25)':'rgba(232,82,26,0.2)',animation:'fadeIn .4s ease'}}>
-                <div style={{fontSize:'1.5rem',textAlign:'center',marginBottom:12}}>{isKeyIssue?'⚙️':errCode==='rate_limited'?'⏱️':errCode==='timeout'?'⌛':isNetworkErr?'📡':'🔧'}</div>
+                <div style={{fontSize:'1.5rem',textAlign:'center',marginBottom:12}}>{isKeyIssue?'⚙️':errCode==='rate_limited'?'⏱️':errCode==='timeout'?'⌛':errCode==='json_parse_fallback'?'🔄':isNetworkErr?'📡':'🔧'}</div>
                 <div style={{fontSize:'1rem',fontWeight:800,textAlign:'center',marginBottom:8}}>
                   {isKeyIssue ? t('aiNoKey') :
-                    errCode==='rate_limited' ? (lang==='de'?'Tageslimit erreicht':lang==='tr'?'Günlük limit doldu':lang==='pl'?'Osiągnięto dzienny limit':'Daily limit reached') :
-                    errCode==='timeout'      ? (lang==='de'?'Analyse hat zu lange gedauert':lang==='tr'?'Analiz çok uzun sürdü':lang==='pl'?'Analiza trwała zbyt długo':'Analysis timed out') :
+                    errCode==='rate_limited'        ? (lang==='de'?'Tageslimit erreicht':lang==='tr'?'Günlük limit doldu':lang==='pl'?'Osiągnięto dzienny limit':'Daily limit reached') :
+                    errCode==='timeout'             ? (lang==='de'?'Analyse hat zu lange gedauert':lang==='tr'?'Analiz çok uzun sürdü':lang==='pl'?'Analiza trwała zbyt długo':'Analysis timed out') :
+                    errCode==='json_parse_fallback' ? (lang==='de'?'Analyse konnte nicht verarbeitet werden':lang==='tr'?'Analiz işlenemedi':lang==='pl'?'Nie udało się przetworzyć analizy':'Analysis could not be processed') :
                     t('aiUnavailable')}
                 </div>
                 <div style={{fontSize:'0.86rem',color:C.m,textAlign:'center',lineHeight:1.65,marginBottom:savedProb?8:16}}>
