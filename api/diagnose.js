@@ -26,6 +26,15 @@ function detectMime(b64) {
   if (b64.startsWith('R0lGO'))  return 'image/gif';
   return null;
 }
+function getGlobalDisclaimer(lang) {
+  const l = (lang || '').toLowerCase();
+
+  if (l.includes('german') || l.includes('deutsch')) {
+    return 'FixIt bietet nur allgemeine Hinweise. Bei Gas-, Elektro- und tragenden Arbeiten immer einen Fachbetrieb kontaktieren.';
+  }
+
+  return 'FixIt provides guidance only. For gas, electrical, and structural work, always use a licensed professional.';
+}
 
 async function readBody(req) {
   return new Promise((resolve, reject) => {
@@ -809,6 +818,7 @@ if (
 }
 
 parsed._version = DEPLOY_VERSION;
+parsed.globalDisclaimer = getGlobalDisclaimer(lang2);
 
 if (vehicleCtx) {
   parsed._vehicleCtx = vehicleCtx; // expose for UI compatibility warning
