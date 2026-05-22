@@ -779,22 +779,27 @@ const electricalText =
   `${prob} ${parsed.diagnosis || ''}`.toLowerCase();
 
 const electricalTerms = [
-  'strom',
-  'elektrik',
   'steckdose',
-  'sicherung',
   'sicherungskasten',
-  'spannung',
-  'kabel',
-  'wire',
-  'electrical',
+  '230v',
+  '240v',
+  '400v',
+  'netzspannung',
+  'offene leitung',
+  'stromschlag',
+  'kabelbrand',
+  'live wire',
   'mains',
-  'router',
-  'wlan'
+  'electrical panel',
+  'fuse box'
 ];
 
+const isElectricalSafetyIssue =
+  cat !== 'car' &&
+  electricalTerms.some(term => electricalText.includes(term));
+
 if (
-  electricalTerms.some(term => electricalText.includes(term)) &&
+  isElectricalSafetyIssue &&
   !parsed.safetyWarning
 ) {
   parsed.safetyWarning =
