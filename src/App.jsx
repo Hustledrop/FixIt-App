@@ -1231,6 +1231,18 @@ export default function App() {
                 <button onClick={()=>handleFeedback('fixed')} style={{...s.btn,width:'auto',padding:'10px 20px',background:'rgba(26,158,92,0.15)',color:C.g,border:`1px solid rgba(26,158,92,0.3)`}}>{ct.fixedY}</button>
                 <button onClick={()=>handleFeedback('broken')} style={{...s.btn,width:'auto',padding:'10px 20px',background:'rgba(214,59,47,0.1)',color:C.r,border:`1px solid rgba(214,59,47,0.25)`}}>{ct.fixedN}</button>
               </div>
+              {result.globalDisclaimer && (
+                <div style={{
+                  marginTop:'16px',
+                  fontSize:'12px',
+                  opacity:0.7,
+                  lineHeight:'1.5',
+                  textAlign:'center',
+                  color:'#888'
+                }}>
+                  {result.globalDisclaimer}
+                </div>
+            )}
             </div>}
             {feedback === 'fixed' && <div style={{...s.card,background:'rgba(26,158,92,0.08)',borderColor:'rgba(26,158,92,0.3)',textAlign:'center'}}>
               <div style={{fontSize:'1.5rem',marginBottom:8}}>🎉</div>
