@@ -1,7 +1,7 @@
 // api/diagnose.js — v6 — 55s timeout, AbortError retry, improved logs
 // DEPLOY_VERSION logged synchronously before ANY async code
 
-const DEPLOY_VERSION = 'diagnose-v9-speed';
+const DEPLOY_VERSION = 'diagnose-v10-compact-1200';
 
 // ── In-memory rate limit (MVP) ────────────────────────────────────────────────
 const RL = new Map();
@@ -492,7 +492,7 @@ module.exports = async function handler(req, res) {
 
       `Write ALL visible text in ${lang2}. Exception: imageQuery must be English keywords only (for image search).`,
 
-      `Be specific and expert. Name the exact component. Use real tool names (Torx T20, 13mm socket). Max 4 steps. Diagnosis under 90 words.`,
+      `Be specific and expert, but concise. Name the exact component and real tool names. Diagnosis max 2 short sentences. Max 4 causes. Max 4 steps. Each step description max 2 short sentences. Each tip max 1 short sentence. Avoid advanced technician-only explanations unless absolutely necessary. Keep JSON compact and valid.`,
 
       // Build vehicle-aware partsNeeded instruction
       // When intelligentParts exist: force the AI to use them exactly (pre-computed from knowledge table)
@@ -734,18 +734,91 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  // ── 9. Return ───────────────────────────────────────────────────────────────
-  // If intelligent parts were computed, ALWAYS use them — overrides AI output.
-  // This is the guarantee that vehicle-specific suggestions are actually returned,
-  // regardless of whether the AI followed the prompt instruction.
-  if (intelligentParts) {
-    parsed.partsNeeded = intelligentParts;
-    console.log('[FixIt] PARTS_OVERRIDE: using intelligent parts for partType=%s vehicle=%s',
-      partType, vehicleCtx ? vehicleCtx.make + ' ' + (vehicleCtx.model || '') : 'none');
-  }
-  parsed._version = DEPLOY_VERSION;
-  if (vehicleCtx) parsed._vehicleCtx = vehicleCtx; // expose for UI compatibility warning
-  const dur = Date.now() - t0;
-  console.log('[FixIt] RETURNING_RESPONSE dur=%dms conf=%s vehicle=%s', dur, parsed.confidence, vehicleCtx ? parsed._vehicleCtx.make + ' ' + (parsed._vehicleCtx.model||'') : 'none');
-  return res.status(200).json(parsed);
+ // ── 9. Return ───────────────────────────────────────────────────────────────
+// If intelligent parts were computed, ALWAYS use them — overrides AI output.
+// This is the guarantee that vehicle-specific suggestions are actually returned,
+// regardless of whether the AI followed the prompt instruction.
+if (intelligentParts) {
+  parsed.partsNeeded = intelligentParts;
+  console.log('[FixIt] PARTS_OVERRIDE: using intelligent parts for partType=%s vehicle=%s',
+    partType, vehicleCtx ? vehicleCtx.make + ' ' + (vehicleCtx.model || '') : 'none');
+}
+
+// Compact parsed output to reduce oversized responses and improve stability
+if (Array.isArray(parsed.causes)) {
+  parsed.causes = parsed.causes.slice(0, 4);
+}
+
+if (Array.isArray(parsed.steps)) {
+  parsed.steps = parsed.steps.slice(0, 4).map(step => ({
+    ...step,
+    title: typeof step.title === 'string'
+      ? step.title.slice(0, 80)
+      : step.title,
+
+    description: typeof step.description === 'string'
+      ? step.description.slice(0, 300)
+      : step.description,
+
+    tip: typeof step.tip === 'string'
+      ? step.tip.slice(0, 140)
+      : step.tip,
+  }));
+}
+
+if (typeof parsed.diagnosis === 'string') {
+  parsed.diagnosis = parsed.diagnosis.slice(0, 420);
+}
+
+if (typeof parsed.proTip === 'string') {
+  parsed.proTip = parsed.proTip.slice(0, 220);
+}
+
+// Electrical safety disclaimer injection
+const electricalText =
+  `${prob} ${parsed.diagnosis || ''}`.toLowerCase();
+
+const electricalTerms = [
+  'strom',
+  'elektrik',
+  'steckdose',
+  'sicherung',
+  'sicherungskasten',
+  'spannung',
+  'kabel',
+  'wire',
+  'electrical',
+  'mains',
+  'router',
+  'wlan'
+];
+
+if (
+  electricalTerms.some(term => electricalText.includes(term)) &&
+  !parsed.safetyWarning
+) {
+  parsed.safetyWarning =
+    lang2.includes('Deutsch') || lang2.includes('German')
+      ? 'Bei Elektroarbeiten immer zuerst die Sicherung ausschalten. Bei offenen Leitungen, Sicherungskasten oder Unsicherheit einen Elektriker kontaktieren.'
+      : 'For electrical work, always turn off power first. For exposed wiring, fuse boxes, or uncertainty, contact a licensed electrician.';
+}
+
+parsed._version = DEPLOY_VERSION;
+
+if (vehicleCtx) {
+  parsed._vehicleCtx = vehicleCtx; // expose for UI compatibility warning
+}
+
+const dur = Date.now() - t0;
+
+console.log(
+  '[FixIt] RETURNING_RESPONSE dur=%dms conf=%s vehicle=%s',
+  dur,
+  parsed.confidence,
+  vehicleCtx
+    ? parsed._vehicleCtx.make + ' ' + (parsed._vehicleCtx.model || '')
+    : 'none'
+);
+
+return res.status(200).json(parsed);
 };
