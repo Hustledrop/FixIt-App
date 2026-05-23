@@ -28,9 +28,21 @@ function buildQuery(cat, south, west, north, east) {
       `way["shop"="auto_parts"](${b})`,
     ],
     tyres: [
+      // Core tyre shop tags
       `node["shop"="tyres"](${b})`,
       `way["shop"="tyres"](${b})`,
+      `relation["shop"="tyres"](${b})`,
+      // Car repair shops that offer tyre service
       `node["shop"="car_repair"]["service:tyres"="yes"](${b})`,
+      `way["shop"="car_repair"]["service:tyres"="yes"](${b})`,
+      // Tyre-related craft/service tags used in OSM
+      `node["craft"="tyre_fitting"](${b})`,
+      `way["craft"="tyre_fitting"](${b})`,
+      // Car repair with wheels tag (common in DE)
+      `node["shop"="car_repair"]["service:vehicle:wheels"="yes"](${b})`,
+      // Vulcanizer (used in some countries)
+      `node["shop"="vulcanizer"](${b})`,
+      `way["shop"="vulcanizer"](${b})`,
     ],
     petrol: [
       `node["amenity"="fuel"](${b})`,
@@ -203,6 +215,19 @@ module.exports = async function handler(req, res) {
 
   out.sort((a, b) => a.dist - b.dist);
   const results = out.slice(0, 25);
+
+  // Reifen-specific debug log (mobile often gets 0 results — track it)
+  if (cat === 'tyres') {
+    const fallbackUsed = results.length === 0;
+    const latRounded = Math.round(latN * 100) / 100;
+    const lngRounded = Math.round(lngN * 100) / 100;
+    console.log(`[nearby] TYRES_DEBUG cat=tyres lat=${latRounded} lng=${lngRounded} results=${results.length} fallbackUsed=${fallbackUsed}`);
+    if (fallbackUsed) {
+      console.warn('[nearby] TYRES_ZERO_RESULTS — returning empty so frontend shows Maps fallback');
+    }
+  }
+
   console.log(`[nearby] returning ${results.length} results to client`);
-  res.status(200).json({ results });
+  // Include cat in response so frontend can show correct Maps fallback label
+  res.status(200).json({ results, cat });
 };

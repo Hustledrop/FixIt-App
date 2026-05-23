@@ -169,6 +169,7 @@ export default function App() {
   const [emrgKey, setEmrgKey]     = useState(null);
   const [aiMsgIdx, setAiMsgIdx]   = useState(0);
   const [feedback, setFeedback]   = useState(null); // null | 'fixed' | 'broken'
+  const [freeLimitHit, setFreeLimitHit] = useState(false); // shown when free diagnosis already used
   const [toast, setToast]         = useState(null);
   const [history, setHistory]     = useState(() => LS.get('history') || []);
   const [showHistory, setShowHistory] = useState(false);
@@ -429,6 +430,15 @@ export default function App() {
     setHsnModel('');
     diagCategoryRef.current = curFix;
     setPrevScr('fix-now');
+    // ── Free device limit check ──────────────────────────────────────────────
+    // Check BEFORE calling the API. Only block if the key is set.
+    // Safety hard-stops bypass this — they should always be accessible.
+    const freeUsed = LS.get('free_diagnosis_used');
+    if (freeUsed) {
+      setFreeLimitHit(true);
+      goto('home');
+      return;
+    }
     setFeedback(null);
     goto('result');
     await diagnose({ problem: prob, photoB64: override ? null : photoB64, photoMime: override ? null : photoMime, category: curFix, lang, countryName: cd.name, userProfile: profile });
@@ -436,6 +446,11 @@ export default function App() {
 
   function saveToHistory(result, prob) {
     if (!result) return;
+    // Mark free diagnosis as used ONLY for real repair guides (not safety hard-stops)
+    // callPro=true means it's a safety block — keep those free always
+    if (!result.callPro && !result._fallback) {
+      LS.set('free_diagnosis_used', true);
+    }
     // Parse estimatedCost into a number for savings tracking
     // Format: "€5–15", "£10–25", "$8" — extract midpoint
     function parseSaving(costStr) {
@@ -846,6 +861,33 @@ export default function App() {
       {showLP && <LangPicker lang={lang} setLang={lc=>{setLang(lc);setShowLP(false);aiReset();setPResults(null);setPInput('');setVInput('');}} setShowLP={setShowLP} LANGS={LANGS} t={t}/>}
       {/* Offline banner */}
       {!isOnline && <div style={{background:'rgba(232,178,26,0.15)',borderBottom:'1px solid rgba(232,178,26,0.3)',padding:'8px 16px',fontSize:'0.72rem',color:C.y,textAlign:'center',flexShrink:0}}>⚠️ Offline mode — emergency info still available</div>}
+      {/* Free diagnosis limit message */}
+      {freeLimitHit && (
+        <div style={{background:'rgba(232,178,26,0.1)',borderBottom:'1px solid rgba(232,178,26,0.2)',
+          padding:'16px 20px',display:'flex',alignItems:'flex-start',gap:12}}>
+          <span style={{fontSize:'1.2rem',flexShrink:0}}>🔒</span>
+          <div style={{flex:1}}>
+            <div style={{fontSize:'0.85rem',fontWeight:700,marginBottom:4,color:'rgba(232,178,26,0.9)'}}>
+              {lang==='de'?'Du hast deine kostenlose Analyse bereits genutzt.':
+               lang==='tr'?'Ücretsiz analizini zaten kullandın.':
+               lang==='pl'?'Wykorzystałeś już swoją bezpłatną analizę.':
+               'You have already used your free analysis.'}
+            </div>
+            <div style={{fontSize:'0.72rem',color:'rgba(255,255,255,0.4)',marginBottom:10,lineHeight:1.5}}>
+              {lang==='de'?'Die kostenlose Testversion erlaubt aktuell eine Analyse pro Gerät.':
+               lang==='tr'?'Ücretsiz deneme şu anda cihaz başına bir analiz sağlar.':
+               lang==='pl'?'Bezpłatna wersja próbna umożliwia jedną analizę na urządzenie.':
+               'The free trial currently allows one analysis per device.'}
+            </div>
+            <button onClick={()=>setFreeLimitHit(false)} style={{
+              background:'transparent',border:'1px solid rgba(255,255,255,0.15)',
+              color:'rgba(255,255,255,0.6)',borderRadius:8,padding:'6px 14px',
+              fontSize:'0.75rem',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>
+              {lang==='de'?'Zurück':'Back'}
+            </button>
+          </div>
+        </div>
+      )}
       {/* PWA install banner */}
       {showPWA && <div style={{background:'rgba(232,82,26,0.1)',borderBottom:`1px solid ${C.b}`,padding:'10px 16px',display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
         <div style={{flex:1,fontSize:'0.78rem'}}>📲 {lang==='de'?'FixIt installieren für schnelleren Zugriff':lang==='tr'?'Daha hızlı erişim için FixIt yükle':lang==='pl'?'Zainstaluj FixIt dla szybszego dostępu':'Install FixIt for faster access'}</div>

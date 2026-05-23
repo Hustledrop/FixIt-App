@@ -5,8 +5,8 @@ const DEPLOY_VERSION = 'diagnose-v10-compact-1200';
 
 // ── In-memory rate limit (MVP) ────────────────────────────────────────────────
 const RL = new Map();
-const RL_MAX  = 10;
-const RL_WIN  = 3600;
+const RL_MAX  = 3;     // 3 backend calls per IP per 24h (abuse protection only)
+const RL_WIN  = 86400; // Frontend localStorage handles the normal 1-free-per-device limit
 
 function checkRateLimit(ip) {
   const now   = Math.floor(Date.now() / 1000);
