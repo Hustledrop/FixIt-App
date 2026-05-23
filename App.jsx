@@ -431,10 +431,14 @@ export default function App() {
     diagCategoryRef.current = curFix;
     setPrevScr('fix-now');
     // ── Free device limit check ──────────────────────────────────────────────
-    // Check BEFORE calling the API. Only block if the key is set.
-    // Safety hard-stops bypass this — they should always be accessible.
+    // Safety/emergency prompts ALWAYS bypass this limit.
+    // A user smelling gas or seeing live wires must never hit a paywall.
+    const EMERGENCY_BYPASS = /gas\s*(leak|geruch|smell|riecht|ausströmt|ausströmend)|gas\s+im\s+(haus|raum|bad|keller|zimmer|küche)|riecht\s+nach\s+gas|gasleitung|gasherd\s*(aus|def|kaput|explod)|live\s*(wire|cable|mains)|240v|230v\s*(kabel|leitung|draht)|stromschlag|elektroschock|sicherungskasten|breaker\s*box|load.?bearing|tragende\s+wand|asbest|asbestos|notfall|emergency|feuerwehr|fire\s*(dept|depart)|notruf/i;
+    const probText = (prob || '').toLowerCase();
+    const isEmergency = EMERGENCY_BYPASS.test(probText);
+
     const freeUsed = LS.get('free_diagnosis_used');
-    if (freeUsed) {
+    if (freeUsed && !isEmergency) {
       setFreeLimitHit(true);
       goto('home');
       return;
