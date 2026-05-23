@@ -722,6 +722,25 @@ export default function App() {
     return ''; // no match found
   }
 
+  // ── Shop query cleaner ───────────────────────────────────────────────────────
+  // Applied before opening any shop URL. Removes "Satz", OEM codes, and
+  // overly specific terms that narrow results too much on Autodoc/Amazon.
+  function shopQueryClean(q) {
+    if (!q) return q;
+    let s = q.trim();
+    // Remove "Satz" (German for "set/kit" — often narrows too much)
+    s = s.replace(/\bSatz\b/gi, '').trim();
+    // Remove bare OEM/OE part number patterns (alphanumeric codes like "0250202132", "F026402062")
+    // Pattern: word that's mostly digits or looks like a part code (6+ chars, mixed alnum)
+    s = s.replace(/\b[A-Z0-9]{2,4}[0-9]{4,}\b/g, '').trim();      // Bosch-style codes
+    s = s.replace(/\b[0-9]{8,}\b/g, '').trim();                    // pure long numbers
+    s = s.replace(/\b[A-Z][0-9]{6,}\b/g, '').trim();               // F026402062 style
+    // Remove trailing/leading filler words left after stripping
+    s = s.replace(/\s{2,}/g, ' ').trim();
+    s = s.replace(/^(für|for|passend|kompatibel)\s+/i, '').trim();
+    return s || q; // never return empty
+  }
+
   function buildPartsQueryFromDiagnosis(result, problem, category, vehicleCtx) {
     const parts = result?.partsNeeded || [];
     const prob  = (problem || '').trim();
@@ -1757,14 +1776,14 @@ export default function App() {
               </div>
               {/* Category-specific online stores (Autodoc for car, MediaMarkt for tech, etc.) */}
               {localStores.map((st,i)=>(
-                <div key={`cat-${i}`} onClick={()=>window.open(st.u(pResults.searchQ), '_blank', 'noopener,noreferrer')} style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:12,padding:'10px 14px',display:'flex',alignItems:'center',gap:12,cursor:'pointer',marginBottom:7}}>
+                <div key={`cat-${i}`} onClick={()=>window.open(st.u(shopQueryClean(pResults.searchQ)), '_blank', 'noopener,noreferrer')} style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:12,padding:'10px 14px',display:'flex',alignItems:'center',gap:12,cursor:'pointer',marginBottom:7}}>
                   <div style={{flex:1}}><div style={{fontSize:'0.86rem',fontWeight:700,display:'flex',alignItems:'center',gap:8}}>{st.n}{st.badge&&<span style={{background:C.o,color:'#fff',fontSize:'0.5rem',padding:'2px 7px',borderRadius:100,fontWeight:700}}>{st.badge}</span>}</div></div>
                   <div style={{color:C.m}}>→</div>
                 </div>
               ))}
               {/* Generic online stores (Amazon, eBay, Idealo) */}
               {onlineStores.map((st,i)=>(
-                <div key={`gen-${i}`} onClick={()=>window.open(st.u(pResults.searchQ), '_blank', 'noopener,noreferrer')} style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:12,padding:'10px 14px',display:'flex',alignItems:'center',gap:12,cursor:'pointer',marginBottom:7}}>
+                <div key={`gen-${i}`} onClick={()=>window.open(st.u(shopQueryClean(pResults.searchQ)), '_blank', 'noopener,noreferrer')} style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:12,padding:'10px 14px',display:'flex',alignItems:'center',gap:12,cursor:'pointer',marginBottom:7}}>
                   <div style={{flex:1}}><div style={{fontSize:'0.86rem',fontWeight:700}}>{st.n}</div></div>
                   <div style={{color:C.m}}>→</div>
                 </div>
