@@ -509,12 +509,12 @@ module.exports = async function handler(req, res) {
       // When no vehicle: use generic short-query rules
       ...(intelligentParts ? [
         `DETECTED VEHICLE: ${[vehicleCtx.year, vehicleCtx.make, vehicleCtx.model, vehicleCtx.generation, vehicleCtx.engine].filter(Boolean).join(' ')}.`,
-        `partsNeeded REQUIRED: You MUST use EXACTLY this pre-computed list as your partsNeeded array. Do not change it, do not add generic alternatives, do not modify the order: ${JSON.stringify(intelligentParts)}. These are vehicle-specific search suggestions generated from a fitment knowledge base. Copy them exactly into the partsNeeded field.`,
+        `partsNeeded REQUIRED: You MUST use EXACTLY this pre-computed list as your partsNeeded array (no changes, no additions, no OEM/part number codes): ${JSON.stringify(intelligentParts)}. These are vehicle-specific search suggestions generated from a fitment knowledge base. Copy them exactly into the partsNeeded field.`,
       ] : vehicleCtx ? [
         `DETECTED VEHICLE: ${[vehicleCtx.year, vehicleCtx.make, vehicleCtx.model, vehicleCtx.generation, vehicleCtx.engine].filter(Boolean).join(' ')}. Use this for vehicle-specific part search queries.`,
-        `partsNeeded: 2–4 vehicle-specific search terms using detected vehicle. Include model in each. Include 1 brand (Brembo/Bosch/Varta/NGK). No sentences. SEARCH SUGGESTIONS only.`,
+        `partsNeeded: 2–4 SHORT vehicle-specific search terms. Include model/generation in each. Include 1 brand name (Brembo/Bosch/Varta/NGK/Mann). NEVER invent OEM/OE part numbers or codes (no Bosch 0250202132, no OEM reference numbers). No sentences. These are Amazon/Autodoc search suggestions only — not confirmed fitment.`,
       ] : [
-        `partsNeeded: 2–4 SHORT buyable search terms, 2–5 words each. GOOD: ["Geberit Spülkasten Dichtung","Universal WC Flapper 63mm"]. BAD: ["Ablaufventil passend zum Modell"]. No sentences. No "passend für".`,
+        `partsNeeded: 2–4 SHORT buyable search terms, 2–5 words each. GOOD: ["Geberit Spülkasten Dichtung","Universal WC Flapper 63mm"]. BAD: ["Ablaufventil passend zum Modell","Bosch OEM 0250202132"]. NEVER invent OEM/OE part numbers or codes. No sentences. No "passend für".`,
       ]),
 
       `estimatedCost: realistic DIY parts cost only, in the currency of ${countryName}. Format: "€5–15". timeEstimate: realistic hands-on time.`,

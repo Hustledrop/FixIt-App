@@ -1250,15 +1250,15 @@ export default function App() {
               <div style={{fontSize:'0.65rem',color:'rgba(255,255,255,0.25)',marginTop:8,lineHeight:1.5}}>
                 {r._vehicleCtx ? (
                   lang==='de'
-                    ? `Suchvorschläge für ${[r._vehicleCtx.make, r._vehicleCtx.model, r._vehicleCtx.engine].filter(Boolean).join(' ')}. Bitte vor dem Kauf über Fahrgestellnummer, vorhandenes Teile-Etikett oder Fahrzeughandbuch prüfen.`
+                    ? `Suchvorschläge für ${[r._vehicleCtx.make, r._vehicleCtx.model, r._vehicleCtx.engine].filter(Boolean).join(' ')}. Bitte OE-Nummer über VIN, HSN/TSN, Fahrzeugschein oder altes Teil prüfen.`
                     : lang==='tr'
-                    ? `${[r._vehicleCtx.make, r._vehicleCtx.model, r._vehicleCtx.engine].filter(Boolean).join(' ')} için arama önerileri. Satın almadan önce şasi numarası veya mevcut parça etiketi ile doğrulayın.`
-                    : `Search suggestions for ${[r._vehicleCtx.make, r._vehicleCtx.model, r._vehicleCtx.engine].filter(Boolean).join(' ')}. Verify compatibility via VIN, existing part label, or vehicle manual before buying.`
+                    ? `${[r._vehicleCtx.make, r._vehicleCtx.model, r._vehicleCtx.engine].filter(Boolean).join(' ')} için arama önerileri. OE uyumluluğunu VIN veya araç belgesiyle doğrulayın.`
+                    : `Search suggestions for ${[r._vehicleCtx.make, r._vehicleCtx.model, r._vehicleCtx.engine].filter(Boolean).join(' ')}. Verify OE/OEM compatibility using VIN, registration data, or the original part.`
                 ) : (
-                  lang==='de'?'Bitte Modellnummer prüfen oder altes Teil vergleichen, bevor Sie Ersatzteile kaufen.':
-                  lang==='tr'?'Satın almadan önce model numarasını veya eski parçayı kontrol edin.':
-                  lang==='pl'?'Sprawdź numer modelu lub porównaj stary element przed zakupem.':
-                  'Please verify your model number or compare the old part before buying.'
+                  lang==='de'?'Bitte OE-Nummer über VIN, HSN/TSN, Fahrzeugschein oder altes Teil prüfen.':
+                  lang==='tr'?'OE uyumluluğunu VIN, ruhsat belgesi veya orijinal parça ile doğrulayın.':
+                  lang==='pl'?'Sprawdź numer OE przez VIN, dane rejestracyjne lub oryginalną część.':
+                  'Please verify OE/OEM compatibility using VIN, registration data, or the original part.'
                 )}
               </div>
             </div>}
@@ -1749,17 +1749,7 @@ export default function App() {
                 </div>
                 <div style={{color:C.g,fontWeight:700}}>→</div>
               </div>
-              {/* Also show a direct product search on Google Maps */}
-              {pResults?.searchQ && <div onClick={()=>window.open(mu(`${pResults.searchQ}`), '_blank', 'noopener,noreferrer')}
-                style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:12,padding:'10px 14px',display:'flex',alignItems:'center',gap:12,cursor:'pointer'}}>
-                <div style={{fontSize:'1.2rem'}}>🔍</div>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:'0.78rem',fontWeight:600}}>{lang==='de'?`"${pResults.searchQ}" in der Nähe`:'"'+pResults.searchQ+'" nearby'}</div>
-                  <div style={{fontSize:'0.62rem',color:C.m}}>{lang==='de'?'Produkt direkt in Google Maps suchen':'Search this product on Google Maps'}</div>
-                </div>
-                <div style={{color:C.g}}>→</div>
-              </div>}
-            </div>
+
             {/* ONLINE-SHOPS — category-specific + generic */}
             <div style={s.card}>
               <div style={{fontSize:'0.62rem',fontWeight:700,color:C.m,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:10}}>
