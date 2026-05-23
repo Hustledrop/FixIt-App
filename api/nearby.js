@@ -1,5 +1,5 @@
 // api/nearby.js — Vercel serverless Overpass proxy
-// Fixes: float precision in bbox, safe "out center tags;" output, correct OSM tags
+// Tyres: broadened query with name-based filtering + larger search radius
 
 const https = require('https');
 
@@ -8,10 +8,28 @@ const OVERPASS_ENDPOINTS = [
   'overpass.kumi.systems',
 ];
 
-// Safe Overpass tag sets per category (verified working OSM tags)
-// Using "out center tags;" — works for both nodes (direct lat/lon) and ways (center)
-function buildQuery(cat, south, west, north, east) {
-  const b = `${south},${west},${north},${east}`;
+// Standard bbox for all categories (≈7km × 7km at 50°N)
+const BBOX_NS = 0.03;
+const BBOX_EW = 0.05;
+
+// Tyres uses a larger bbox (≈10km radius) because tyre shops are sparse
+const TYRES_BBOX_NS = 0.09;
+const TYRES_BBOX_EW = 0.12;
+
+// Name filter regex for Overpass — catches tyre shops tagged as generic car_repair
+// This is an Overpass regex, not JS regex — uses ERE syntax
+const TYRE_NAME_REGEX = 'Reifen|Tyre|Tire|Vulkan|Felgen|Räder|Rader|Wheels|Wheel';
+
+function buildQuery(cat, latN, lngN) {
+  // Tyres gets a larger search area
+  const ns = cat === 'tyres' ? TYRES_BBOX_NS : BBOX_NS;
+  const ew = cat === 'tyres' ? TYRES_BBOX_EW : BBOX_EW;
+
+  const south = (latN - ns).toFixed(6);
+  const north = (latN + ns).toFixed(6);
+  const west  = (lngN - ew).toFixed(6);
+  const east  = (lngN + ew).toFixed(6);
+  const b     = `${south},${west},${north},${east}`;
 
   const parts = {
     garage: [
@@ -27,23 +45,43 @@ function buildQuery(cat, south, west, north, east) {
       `node["shop"="auto_parts"](${b})`,
       `way["shop"="auto_parts"](${b})`,
     ],
+
+    // ── TYRES — two-pass strategy ─────────────────────────────────────────────
+    // Pass A: exact tyre-specific tags → keep ALL results, no name filter needed
+    // Pass B: broad categories (car_repair, auto_parts) → Overpass filters by name
+    //         Only keeps shops whose name/brand/operator contains tyre keywords
+    // This avoids returning every generic mechanic while catching tyre specialists
+    // that happen to be tagged as car_repair.
     tyres: [
-      // Core tyre shop tags
+      // Pass A: exact tyre tags — keep everything
       `node["shop"="tyres"](${b})`,
       `way["shop"="tyres"](${b})`,
       `relation["shop"="tyres"](${b})`,
-      // Car repair shops that offer tyre service
-      `node["shop"="car_repair"]["service:tyres"="yes"](${b})`,
-      `way["shop"="car_repair"]["service:tyres"="yes"](${b})`,
-      // Tyre-related craft/service tags used in OSM
-      `node["craft"="tyre_fitting"](${b})`,
-      `way["craft"="tyre_fitting"](${b})`,
-      // Car repair with wheels tag (common in DE)
-      `node["shop"="car_repair"]["service:vehicle:wheels"="yes"](${b})`,
-      // Vulcanizer (used in some countries)
       `node["shop"="vulcanizer"](${b})`,
       `way["shop"="vulcanizer"](${b})`,
+      `node["craft"="tyre_fitting"](${b})`,
+      `way["craft"="tyre_fitting"](${b})`,
+      // Pass A: explicit service tags
+      `node["service:vehicle:tyres"="yes"](${b})`,
+      `way["service:vehicle:tyres"="yes"](${b})`,
+      `node["service:vehicle:tires"="yes"](${b})`,
+      `way["service:vehicle:tires"="yes"](${b})`,
+      `node["service:vehicle:wheels"="yes"](${b})`,
+      `way["service:vehicle:wheels"="yes"](${b})`,
+      `node["service:tyres"="yes"](${b})`,
+      `way["service:tyres"="yes"](${b})`,
+      // Pass B: car_repair with tyre-related name (Overpass regex filter)
+      // Catches shops like "Reifenservice Müller" tagged as shop=car_repair
+      `node["shop"="car_repair"]["name"~"${TYRE_NAME_REGEX}",i](${b})`,
+      `way["shop"="car_repair"]["name"~"${TYRE_NAME_REGEX}",i](${b})`,
+      // Pass B: auto_parts with tyre name
+      `node["shop"="auto_parts"]["name"~"${TYRE_NAME_REGEX}",i](${b})`,
+      `way["shop"="auto_parts"]["name"~"${TYRE_NAME_REGEX}",i](${b})`,
+      // Pass B: amenity=car_repair (older tagging scheme) with tyre name
+      `node["amenity"="car_repair"]["name"~"${TYRE_NAME_REGEX}",i](${b})`,
+      `way["amenity"="car_repair"]["name"~"${TYRE_NAME_REGEX}",i](${b})`,
     ],
+
     petrol: [
       `node["amenity"="fuel"](${b})`,
       `way["amenity"="fuel"](${b})`,
@@ -68,11 +106,29 @@ function buildQuery(cat, south, west, north, east) {
   };
 
   const lines = (parts[cat] || parts.garage).join(';\n  ');
-  // "out center tags;" is the safe output for mixed node/way results:
-  // - nodes: get lat/lon directly
-  // - ways:  get center lat/lon + all tags
-  // No >;out skel which caused the 400
-  return `[out:json][timeout:25];\n(\n  ${lines};\n);\nout center tags;`;
+  return { query: `[out:json][timeout:25];\n(\n  ${lines};\n);\nout center tags;`, south, west, north, east };
+}
+
+// Server-side tyre keyword filter for results that came from broad (Pass B) queries
+// Only needed as a safety net — Overpass name~ filter should already handle it
+const TYRE_KEYWORDS = /reifen|tyre|tire|vulkan|felgen|räder|rader|wheel/i;
+
+function isTyreRelevant(el) {
+  const tags = el.tags || {};
+  const shop = tags.shop || '';
+  const craft = tags.craft || '';
+  // Exact tyre tags → always relevant (Pass A results)
+  if (['tyres', 'vulcanizer'].includes(shop)) return true;
+  if (craft === 'tyre_fitting') return true;
+  if (tags['service:vehicle:tyres'] === 'yes') return true;
+  if (tags['service:vehicle:tires'] === 'yes') return true;
+  if (tags['service:vehicle:wheels'] === 'yes') return true;
+  if (tags['service:tyres'] === 'yes') return true;
+  // Broad tags — only relevant if name/brand/operator mentions tyres
+  const searchFields = [
+    tags.name, tags.brand, tags.operator, tags.description,
+  ].filter(Boolean).join(' ');
+  return TYRE_KEYWORDS.test(searchFields);
 }
 
 function haversine(la1, lo1, la2, lo2) {
@@ -106,7 +162,6 @@ function fetchOverpass(host, query) {
       res.on('data', chunk => { data += chunk; });
       res.on('end', () => {
         if (res.statusCode !== 200) {
-          // Log full error body so we can debug further
           console.error(`[nearby] ${host} HTTP ${res.statusCode} body: ${data.substring(0, 500)}`);
           reject(new Error(`HTTP ${res.statusCode} from ${host}`));
           return;
@@ -148,16 +203,11 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  // CRITICAL: use toFixed(6) to avoid JS float garbage like 7.4254430000000005
-  const south = (latN - 0.03).toFixed(6);
-  const north = (latN + 0.03).toFixed(6);
-  const west  = (lngN - 0.05).toFixed(6);
-  const east  = (lngN + 0.05).toFixed(6);
+  const { query, south, west, north, east } = buildQuery(cat, latN, lngN);
+  const radiusKm = cat === 'tyres' ? `${(TYRES_BBOX_NS * 111).toFixed(0)}km` : `${(BBOX_NS * 111).toFixed(0)}km`;
 
-  const query = buildQuery(cat, south, west, north, east);
-  console.log(`[nearby] cat=${cat} lat=${latN} lng=${lngN}`);
+  console.log(`[nearby] cat=${cat} lat=${latN.toFixed(4)} lng=${lngN.toFixed(4)} radius=${radiusKm}`);
   console.log(`[nearby] bbox: S=${south} W=${west} N=${north} E=${east}`);
-  console.log(`[nearby] query:\n${query}`);
 
   let lastErr;
   let data = null;
@@ -165,7 +215,7 @@ module.exports = async function handler(req, res) {
   for (const host of OVERPASS_ENDPOINTS) {
     try {
       data = await fetchOverpass(host, query);
-      console.log(`[nearby] ${host} OK — ${(data.elements||[]).length} elements`);
+      console.log(`[nearby] ${host} OK — ${(data.elements||[]).length} raw elements`);
       break;
     } catch (err) {
       console.warn(`[nearby] ${host} failed: ${err.message}`);
@@ -175,27 +225,40 @@ module.exports = async function handler(req, res) {
 
   if (!data) {
     console.error(`[nearby] all endpoints failed: ${lastErr?.message}`);
-    // Return 200 with empty results — frontend shows Maps fallback
-    res.status(200).json({ results: [], error: lastErr?.message || 'All endpoints failed' });
+    if (cat === 'tyres') {
+      console.warn('[nearby] TYRES_FALLBACK reason=endpoint_failure');
+    }
+    res.status(200).json({ results: [], error: lastErr?.message || 'All endpoints failed', cat });
     return;
   }
 
-  const elements = data.elements || [];
-  const seen = {}, out = [];
+  const elements   = data.elements || [];
+  const rawCount   = elements.length;
+  const seen       = {};
+  const out        = [];
+  let   filteredOut = 0;
+
+  // Max distance: tyres uses larger radius, so cap at 12km; others at 15km
+  const maxDist = cat === 'tyres' ? 12 : 15;
 
   elements.forEach(el => {
-    if (!el.tags?.name || seen[el.tags.name]) return;
+    if (!el.tags?.name) return;
+
+    // Server-side tyre relevance filter (belt-and-suspenders after Overpass name~ filter)
+    if (cat === 'tyres' && !isTyreRelevant(el)) {
+      filteredOut++;
+      return;
+    }
+
+    if (seen[el.tags.name]) return;
     seen[el.tags.name] = true;
 
-    // "out center tags" gives:
-    // nodes: el.lat + el.lon
-    // ways:  el.center.lat + el.center.lon
     const elLat = el.lat ?? el.center?.lat;
     const elLon = el.lon ?? el.center?.lon;
     if (!elLat || !elLon) return;
 
     const dist = haversine(latN, lngN, parseFloat(elLat), parseFloat(elLon));
-    if (dist > 15) return;
+    if (dist > maxDist) return;
 
     const street = el.tags['addr:street']
       ? el.tags['addr:street'] + (el.tags['addr:housenumber'] ? ' ' + el.tags['addr:housenumber'] : '')
@@ -216,18 +279,18 @@ module.exports = async function handler(req, res) {
   out.sort((a, b) => a.dist - b.dist);
   const results = out.slice(0, 25);
 
-  // Reifen-specific debug log (mobile often gets 0 results — track it)
+  // Tyre-specific debug log
   if (cat === 'tyres') {
     const fallbackUsed = results.length === 0;
-    const latRounded = Math.round(latN * 100) / 100;
-    const lngRounded = Math.round(lngN * 100) / 100;
-    console.log(`[nearby] TYRES_DEBUG cat=tyres lat=${latRounded} lng=${lngRounded} results=${results.length} fallbackUsed=${fallbackUsed}`);
+    console.log(
+      `[nearby] TYRES_DEBUG radius=${radiusKm} rawElements=${rawCount} ` +
+      `filteredOut=${filteredOut} finalResults=${results.length} fallbackUsed=${fallbackUsed}`
+    );
     if (fallbackUsed) {
-      console.warn('[nearby] TYRES_ZERO_RESULTS — returning empty so frontend shows Maps fallback');
+      console.warn('[nearby] TYRES_ZERO_RESULTS — frontend will show Google Maps fallback');
     }
   }
 
   console.log(`[nearby] returning ${results.length} results to client`);
-  // Include cat in response so frontend can show correct Maps fallback label
   res.status(200).json({ results, cat });
 };
