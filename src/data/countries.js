@@ -106,9 +106,9 @@ const STORES = {
   },
   tech: {
     DE:[
-      {n:"MediaMarkt 🔴",u:(q)=>`https://www.mediamarkt.de/de/search.html?query=${encodeURIComponent(q)}`},
-      {n:"Saturn 🔵",u:(q)=>`https://www.saturn.de/de/search.html?query=${encodeURIComponent(q)}`},
       {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
+      {n:"MediaMarkt 🔴",u:(q)=>`https://www.mediamarkt.de/de/search.html?query=${encodeURIComponent(q)}`},
+      {n:"eBay.de 🛒",u:(q)=>`https://www.ebay.de/sch/i.html?_nkw=${encodeURIComponent(q)}`},
       {n:"Idealo.de 💰",u:(q)=>`https://www.idealo.de/preisvergleich/MainSearchProductCategory.html?q=${encodeURIComponent(q)}`},
     ],
     AT:[
@@ -140,13 +140,13 @@ const STORES = {
   },
   home: {
     DE:[
-      {n:"OBI 🟡",u:(q)=>`https://www.google.com/search?q=site%3Aobi.de+${encodeURIComponent(q)}`},
-      {n:"Bauhaus 🏗️",u:(q)=>`https://www.bauhaus.info/suche?q=${encodeURIComponent(q)}`},
+      {n:"OBI 🟡",u:(q)=>`https://www.obi.de/search/${encodeURIComponent(q)}/`},
+      {n:"Bauhaus 🏗️",u:(q)=>`https://www.bauhaus.info/suche/produkte?text=${encodeURIComponent(q)}`},
       {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
       {n:"Idealo.de 💰",u:(q)=>`https://www.idealo.de/preisvergleich/MainSearchProductCategory.html?q=${encodeURIComponent(q)}`},
     ],
     AT:[
-      {n:"OBI 🟡",u:(q)=>`https://www.google.com/search?q=site%3Aobi.at+${encodeURIComponent(q)}`},
+      {n:"OBI 🟡",u:(q)=>`https://www.obi.at/search/${encodeURIComponent(q)}/`},
       {n:"Bauhaus 🏗️",u:(q)=>`https://www.bauhaus.at/suche?q=${encodeURIComponent(q)}`},
       {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
     ],
@@ -191,9 +191,9 @@ const STORES = {
   appliances: {
     DE:[
       {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
-      {n:"MediaMarkt 🔴",u:(q)=>`https://www.mediamarkt.de/de/search.html?query=${encodeURIComponent(q)}`},
-      {n:"Saturn 🔵",u:(q)=>`https://www.saturn.de/de/search.html?query=${encodeURIComponent(q)}`},
+      {n:"eBay.de 🛒",u:(q)=>`https://www.ebay.de/sch/i.html?_nkw=${encodeURIComponent(q)}`},
       {n:"Idealo.de 💰",u:(q)=>`https://www.idealo.de/preisvergleich/MainSearchProductCategory.html?q=${encodeURIComponent(q)}`},
+      {n:"MediaMarkt 🔴",u:(q)=>`https://www.mediamarkt.de/de/search.html?query=${encodeURIComponent(q)}`},
     ],
     GB:[
       {n:"Currys 🔵",u:(q)=>`https://www.currys.co.uk/search?q=${encodeURIComponent(q)}`},
@@ -212,8 +212,8 @@ const STORES = {
   },
   garden: {
     DE:[
-      {n:"OBI Garten 🌿",u:(q)=>`https://www.google.com/search?q=site%3Aobi.de+${encodeURIComponent(q)}`},
-      {n:"Bauhaus Garten 🌱",u:(q)=>`https://www.bauhaus.info/suche?q=${encodeURIComponent(q)}`},
+      {n:"OBI Garten 🌿",u:(q)=>`https://www.obi.de/search/${encodeURIComponent(q)}/`},
+      {n:"Bauhaus Garten 🌱",u:(q)=>`https://www.bauhaus.info/suche/produkte?text=${encodeURIComponent(q)}`},
       {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
     ],
     GB:[

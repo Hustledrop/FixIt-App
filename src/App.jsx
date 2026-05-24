@@ -962,7 +962,7 @@ export default function App() {
           </div>
         )}
         <label style={{background:'rgba(232,82,26,0.04)',border:'2px dashed rgba(232,82,26,0.25)',borderRadius:20,padding:'24px 20px',textAlign:'center',marginBottom:14,cursor:'pointer',display:'block'}}>
-          <input type="file" accept="image/*" onChange={handlePhoto} style={{display:'none'}}/>
+          <input type="file" accept="image/*" capture="environment" onChange={handlePhoto} style={{display:'none'}}/>
           <div style={{fontSize:'2rem',marginBottom:6}}>📸</div>
           <div style={{fontSize:'0.92rem',fontWeight:700,marginBottom:4}}>{t('takePhoto')}</div>
           <div style={{fontSize:'0.73rem',color:C.m,marginBottom:10}}>{t('photoDesc')}</div>
