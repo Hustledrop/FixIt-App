@@ -2,7 +2,7 @@ export const LANG_TO_CC = {
   de:'DE',fr:'FR',it:'IT',es:'ES',pl:'PL',nl:'NL',pt:'PT',
   sr:'RS',hr:'HR',bs:'BA',sl:'SI',mk:'MK',bg:'BG',sq:'AL',
   ro:'RO',el:'GR',tr:'TR',uk:'UA',cs:'CZ',sv:'SE',da:'DK',
-  no:'NO',fi:'FI',en:'GB',ru:'RU',ar:'SA',he:'IL',zh:'CN',
+  no:'NO',fi:'FI',en:'DEFAULT',ru:'RU',ar:'SA',he:'IL',zh:'CN',
   ja:'JP',ko:'KR',hi:'IN',me:'ME',
 };
 
@@ -116,8 +116,15 @@ const STORES = {
       {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
     ],
     CH:[
-      {n:"MediaMarkt 🔴",u:(q)=>`https://www.mediamarkt.ch/de/search.html?query=${encodeURIComponent(q)}`},
+      {n:"Galaxus 🛍️",u:(q)=>`https://www.galaxus.ch/search?q=${encodeURIComponent(q)}`,badge:"BEST"},
       {n:"Digitec 💻",u:(q)=>`https://www.digitec.ch/search?q=${encodeURIComponent(q)}`},
+      {n:"MediaMarkt 🔴",u:(q)=>`https://www.mediamarkt.ch/de/search.html?query=${encodeURIComponent(q)}`},
+    ],
+    CH:[
+      {n:"Galaxus 🛍️",u:(q)=>`https://www.galaxus.ch/search?q=${encodeURIComponent(q)}`,badge:"BEST"},
+      {n:"Digitec 💻",u:(q)=>`https://www.digitec.ch/search?q=${encodeURIComponent(q)}`},
+      {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
+      {n:"eBay.de 🛒",u:(q)=>`https://www.ebay.de/sch/i.html?_nkw=${encodeURIComponent(q)}`},
     ],
     GB:[
       {n:"Currys 🔵",u:(q)=>`https://www.currys.co.uk/search?q=${encodeURIComponent(q)}`},
@@ -151,6 +158,7 @@ const STORES = {
       {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
     ],
     CH:[
+      {n:"Jumbo 🔨",u:(q)=>`https://www.jumbo.ch/search?q=${encodeURIComponent(q)}`,badge:"BEST"},
       {n:"Bauhaus 🏗️",u:(q)=>`https://www.bauhaus.ch/suche?q=${encodeURIComponent(q)}`},
       {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
     ],
@@ -195,6 +203,12 @@ const STORES = {
       {n:"Idealo.de 💰",u:(q)=>`https://www.idealo.de/preisvergleich/MainSearchProductCategory.html?q=${encodeURIComponent(q)}`},
       {n:"MediaMarkt 🔴",u:(q)=>`https://www.mediamarkt.de/de/search.html?query=${encodeURIComponent(q)}`},
     ],
+    CH:[
+      {n:"Galaxus 🛍️",u:(q)=>`https://www.galaxus.ch/search?q=${encodeURIComponent(q)}`,badge:"BEST"},
+      {n:"Digitec 💻",u:(q)=>`https://www.digitec.ch/search?q=${encodeURIComponent(q)}`},
+      {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
+      {n:"eBay.de 🛒",u:(q)=>`https://www.ebay.de/sch/i.html?_nkw=${encodeURIComponent(q)}`},
+    ],
     GB:[
       {n:"Currys 🔵",u:(q)=>`https://www.currys.co.uk/search?q=${encodeURIComponent(q)}`},
       {n:"AO.com 🟡",u:(q)=>`https://ao.com/search?q=${encodeURIComponent(q)}`},
@@ -214,6 +228,11 @@ const STORES = {
     DE:[
       {n:"OBI Garten 🌿",u:(q)=>`https://www.obi.de/search/${encodeURIComponent(q)}/`},
       {n:"Bauhaus Garten 🌱",u:(q)=>`https://www.bauhaus.info/suche/produkte?text=${encodeURIComponent(q)}`},
+      {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
+    ],
+    CH:[
+      {n:"Jumbo Garten 🌿",u:(q)=>`https://www.jumbo.ch/de/search?searchTerm=${encodeURIComponent(q)}`,badge:"BEST"},
+      {n:"Galaxus 🛍️",u:(q)=>`https://www.galaxus.ch/search?q=${encodeURIComponent(q)}`},
       {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
     ],
     GB:[

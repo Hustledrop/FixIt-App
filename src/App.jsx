@@ -151,8 +151,33 @@ const CSS = `
 `;
 
 export default function App() {
-  const [lang, setLang]           = useState(() => SS.get('lang') || 'en');
+  const [lang, setLang]           = useState(() => {
+    // Manual selection always wins
+    const saved = SS.get('lang');
+    if (saved) return saved;
+    // First launch: detect from navigator.language (e.g. 'de-CH', 'fr-CH', 'de-DE')
+    // Only apply if user has never manually chosen (LS flag)
+    if (!LS.get('lang_manually_set')) {
+      const full = (navigator.language || 'en').toLowerCase(); // e.g. 'de-ch'
+      const base = full.split('-')[0];                          // e.g. 'de'
+      const SUPPORTED = ['de','fr','it','es','pl','sr','hr','mk','tr'];
+      if (SUPPORTED.includes(base)) return base;
+    }
+    return 'en';
+  });
   const [selLang, setSelLang]     = useState('en');
+  // Region detected from browser locale (e.g. 'CH' from 'de-CH')
+  // Used to override cc when GPS isn't available yet
+  const [detectedRegion, setDetectedRegion] = useState(() => {
+    const full = (navigator.language || '').toLowerCase(); // e.g. 'de-ch'
+    const parts = full.split('-');
+    if (parts.length >= 2) {
+      const region = parts[1].toUpperCase(); // 'CH', 'DE', 'AT', 'FR', etc.
+      const SUPPORTED_CC = ['CH','DE','AT','GB','FR','IT','ES','PL','US'];
+      if (SUPPORTED_CC.includes(region)) return region;
+    }
+    return null;
+  });
   const [showLP, setShowLP]       = useState(false);
   const [screen, setScreen]       = useState('splash'); // always start at splash; restore happens in boot effect
   const [prevScr, setPrevScr]     = useState('home');
@@ -189,7 +214,8 @@ export default function App() {
   const { bizs, loading: bizLoading, error: bizError, fetchBiz } = useNearby();
 
   const t   = useCallback(k => tx(lang, k), [lang]);
-  const cc  = getCC(lang);
+  // cc: GPS country wins, then browser-detected region, then lang-based fallback
+  const cc  = getCC(lang, detectedRegion);
   const cd  = getCountry(cc);
   const mu  = useCallback(q => mapsUrlFor(q, lat, lng, cc, lang), [lat, lng, cc, lang]);
 
@@ -372,7 +398,7 @@ export default function App() {
     setPhoto(null); setPhotoB64(null); setPhotoMime(null);
   }
 
-  function confirmLang() { setLang(selLang); goto('loc-ask'); }
+  function confirmLang() { setLang(selLang); LS.set('lang_manually_set',true); goto('loc-ask'); }
 
   function detectMime(b64) {
     // Detect real image type from base64 magic bytes — never trust browser MIME alone
@@ -843,7 +869,7 @@ export default function App() {
   // ── HOME ─────────────────────────────────────────────────────────────────────
   if (screen === 'home') return (
     <Screen>
-      {showLP && <LangPicker lang={lang} setLang={lc=>{setLang(lc);setShowLP(false);aiReset();setPResults(null);setPInput('');setVInput('');}} setShowLP={setShowLP} LANGS={LANGS} t={t}/>}
+      {showLP && <LangPicker lang={lang} setLang={lc=>{setLang(lc);LS.set('lang_manually_set',true);setShowLP(false);aiReset();setPResults(null);setPInput('');setVInput('');}} setShowLP={setShowLP} LANGS={LANGS} t={t}/>}
       {/* Offline banner */}
       {!isOnline && <div style={{background:'rgba(232,178,26,0.15)',borderBottom:'1px solid rgba(232,178,26,0.3)',padding:'8px 16px',fontSize:'0.72rem',color:C.y,textAlign:'center',flexShrink:0}}>⚠️ Offline mode — emergency info still available</div>}
       {/* PWA install banner */}
@@ -947,7 +973,7 @@ export default function App() {
   // ── FIX NOW ──────────────────────────────────────────────────────────────────
   if (screen === 'fix-now') return (
     <Screen>
-      {showLP && <LangPicker lang={lang} setLang={lc=>{setLang(lc);setShowLP(false);aiReset();setPResults(null);setPInput('');setVInput('');}} setShowLP={setShowLP} LANGS={LANGS} t={t}/>}
+      {showLP && <LangPicker lang={lang} setLang={lc=>{setLang(lc);LS.set('lang_manually_set',true);setShowLP(false);aiReset();setPResults(null);setPInput('');setVInput('');}} setShowLP={setShowLP} LANGS={LANGS} t={t}/>}
       <div style={{padding:'52px 20px 14px',borderBottom:`1px solid ${C.b}`,flexShrink:0}}>
           <BackBtn/>
         <div style={{fontSize:'1.35rem',fontWeight:800,letterSpacing:'-0.02em',marginBottom:4}}>{t('fixItNow')}</div>
@@ -961,13 +987,20 @@ export default function App() {
             <button onClick={clearPhoto} style={{position:'absolute',top:8,right:8,background:'rgba(0,0,0,0.65)',border:'none',color:'#fff',borderRadius:'50%',width:28,height:28,cursor:'pointer',fontFamily:'inherit'}}>✕</button>
           </div>
         )}
-        <label style={{background:'rgba(232,82,26,0.04)',border:'2px dashed rgba(232,82,26,0.25)',borderRadius:20,padding:'24px 20px',textAlign:'center',marginBottom:14,cursor:'pointer',display:'block'}}>
-          <input type="file" accept="image/*" capture="environment" onChange={handlePhoto} style={{display:'none'}}/>
-          <div style={{fontSize:'2rem',marginBottom:6}}>📸</div>
-          <div style={{fontSize:'0.92rem',fontWeight:700,marginBottom:4}}>{t('takePhoto')}</div>
-          <div style={{fontSize:'0.73rem',color:C.m,marginBottom:10}}>{t('photoDesc')}</div>
-          <span style={{background:C.o,color:'#fff',borderRadius:100,padding:'8px 20px',fontSize:'0.78rem',fontWeight:700}}>{t('cameraUpload')}</span>
-        </label>
+        <div style={{display:'flex',gap:8,marginBottom:14}}>
+          {/* Button 1: Camera — opens rear camera directly on mobile */}
+          <label style={{flex:1,background:'rgba(232,82,26,0.06)',border:'2px dashed rgba(232,82,26,0.3)',borderRadius:16,padding:'14px 10px',textAlign:'center',cursor:'pointer',display:'block'}}>
+            <input type="file" accept="image/*" capture="environment" onChange={handlePhoto} style={{display:'none'}}/>
+            <div style={{fontSize:'1.5rem',marginBottom:4}}>📷</div>
+            <div style={{fontSize:'0.78rem',fontWeight:700,color:C.o}}>{lang==='de'?'Kamera':lang==='fr'?'Caméra':lang==='it'?'Fotocamera':lang==='tr'?'Kamera':lang==='pl'?'Aparat':'Camera'}</div>
+          </label>
+          {/* Button 2: Upload — opens gallery/file picker, no camera force */}
+          <label style={{flex:1,background:'rgba(255,255,255,0.03)',border:'2px dashed rgba(255,255,255,0.12)',borderRadius:16,padding:'14px 10px',textAlign:'center',cursor:'pointer',display:'block'}}>
+            <input type="file" accept="image/*" onChange={handlePhoto} style={{display:'none'}}/>
+            <div style={{fontSize:'1.5rem',marginBottom:4}}>🖼️</div>
+            <div style={{fontSize:'0.78rem',fontWeight:700,color:'rgba(255,255,255,0.6)'}}>{lang==='de'?'Foto hochladen':lang==='fr'?'Importer photo':lang==='it'?'Carica foto':lang==='tr'?'Fotoğraf yükle':lang==='pl'?'Prześlij zdjęcie':'Upload photo'}</div>
+          </label>
+        </div>
         <div style={s.card}>
           <div style={{fontSize:'0.65rem',color:C.m,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:10}}>{t('describeWords')}</div>
           <textarea
@@ -1032,7 +1065,7 @@ export default function App() {
 
     return (
       <Screen>
-        {showLP && <LangPicker lang={lang} setLang={lc=>{setLang(lc);setShowLP(false);aiReset();setPResults(null);setPInput('');setVInput('');}} setShowLP={setShowLP} LANGS={LANGS} t={t}/>}
+        {showLP && <LangPicker lang={lang} setLang={lc=>{setLang(lc);LS.set('lang_manually_set',true);setShowLP(false);aiReset();setPResults(null);setPInput('');setVInput('');}} setShowLP={setShowLP} LANGS={LANGS} t={t}/>}
         <div style={{padding:'52px 20px 14px',background:'linear-gradient(160deg,#001a0d,#0A0908 60%)',borderBottom:`1px solid ${C.b}`,flexShrink:0}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
             <BackBtn/>
@@ -1285,7 +1318,7 @@ export default function App() {
   // ── EMERGENCY ────────────────────────────────────────────────────────────────
   if (screen === 'emergency') return (
     <Screen bg="#060000">
-      {showLP && <LangPicker lang={lang} setLang={lc=>{setLang(lc);setShowLP(false);aiReset();setPResults(null);setPInput('');setVInput('');}} setShowLP={setShowLP} LANGS={LANGS} t={t}/>}
+      {showLP && <LangPicker lang={lang} setLang={lc=>{setLang(lc);LS.set('lang_manually_set',true);setShowLP(false);aiReset();setPResults(null);setPInput('');setVInput('');}} setShowLP={setShowLP} LANGS={LANGS} t={t}/>}
       {!isOnline && <div style={{background:'rgba(232,178,26,0.1)',borderBottom:'1px solid rgba(232,178,26,0.2)',padding:'8px 16px',fontSize:'0.72rem',color:C.y,textAlign:'center',flexShrink:0}}>⚠️ Offline mode — emergency numbers still available</div>}
       <div style={{padding:'52px 20px 14px',background:'linear-gradient(160deg,rgba(214,59,47,0.1),transparent 60%)',flexShrink:0}}>
         <div style={{display:'flex',alignItems:'center',gap:6,fontSize:'0.62rem',fontWeight:700,color:C.r,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:8}}>
@@ -1346,7 +1379,7 @@ export default function App() {
     );
     return (
       <Screen bg="#060000">
-        {showLP && <LangPicker lang={lang} setLang={lc=>{setLang(lc);setShowLP(false);aiReset();setPResults(null);setPInput('');setVInput('');}} setShowLP={setShowLP} LANGS={LANGS} t={t}/>}
+        {showLP && <LangPicker lang={lang} setLang={lc=>{setLang(lc);LS.set('lang_manually_set',true);setShowLP(false);aiReset();setPResults(null);setPInput('');setVInput('');}} setShowLP={setShowLP} LANGS={LANGS} t={t}/>}
         <div style={{padding:'52px 20px 14px',borderBottom:'1px solid rgba(255,255,255,0.06)',flexShrink:0}}>
           <BackBtn onPress={()=>goto('emergency')}/>
           <div style={{display:'flex',alignItems:'center',gap:12}}>
@@ -1416,7 +1449,7 @@ export default function App() {
     };
     return (
       <Screen>
-        {showLP && <LangPicker lang={lang} setLang={lc=>{setLang(lc);setShowLP(false);aiReset();setPResults(null);setPInput('');setVInput('');}} setShowLP={setShowLP} LANGS={LANGS} t={t}/>}
+        {showLP && <LangPicker lang={lang} setLang={lc=>{setLang(lc);LS.set('lang_manually_set',true);setShowLP(false);aiReset();setPResults(null);setPInput('');setVInput('');}} setShowLP={setShowLP} LANGS={LANGS} t={t}/>}
         <div style={{padding:'52px 20px 12px',borderBottom:`1px solid ${C.b}`,flexShrink:0}}>
           <BackBtn/>
           <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
@@ -1555,7 +1588,7 @@ export default function App() {
                 vType==='pets'?(t('vehicleInputPet')):t('vehicleInputDefault');
     return (
       <Screen>
-        {showLP && <LangPicker lang={lang} setLang={lc=>{setLang(lc);setShowLP(false);aiReset();setPResults(null);setPInput('');setVInput('');}} setShowLP={setShowLP} LANGS={LANGS} t={t}/>}
+        {showLP && <LangPicker lang={lang} setLang={lc=>{setLang(lc);LS.set('lang_manually_set',true);setShowLP(false);aiReset();setPResults(null);setPInput('');setVInput('');}} setShowLP={setShowLP} LANGS={LANGS} t={t}/>}
         <div style={{padding:'52px 20px 14px',borderBottom:`1px solid ${C.b}`,flexShrink:0}}>
           <BackBtn/>
           <div style={{fontSize:'1.35rem',fontWeight:800,letterSpacing:'-0.02em',marginBottom:4}}>

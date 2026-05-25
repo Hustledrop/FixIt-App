@@ -1026,13 +1026,18 @@ export default function App() {
             <button onClick={clearPhoto} style={{position:'absolute',top:8,right:8,background:'rgba(0,0,0,0.65)',border:'none',color:'#fff',borderRadius:'50%',width:28,height:28,cursor:'pointer',fontFamily:'inherit'}}>✕</button>
           </div>
         )}
-        <label style={{background:'rgba(232,82,26,0.04)',border:'2px dashed rgba(232,82,26,0.25)',borderRadius:20,padding:'24px 20px',textAlign:'center',marginBottom:14,cursor:'pointer',display:'block'}}>
-          <input type="file" accept="image/*" onChange={handlePhoto} style={{display:'none'}}/>
-          <div style={{fontSize:'2rem',marginBottom:6}}>📸</div>
-          <div style={{fontSize:'0.92rem',fontWeight:700,marginBottom:4}}>{t('takePhoto')}</div>
-          <div style={{fontSize:'0.73rem',color:C.m,marginBottom:10}}>{t('photoDesc')}</div>
-          <span style={{background:C.o,color:'#fff',borderRadius:100,padding:'8px 20px',fontSize:'0.78rem',fontWeight:700}}>{t('cameraUpload')}</span>
-        </label>
+        <div style={{display:'flex',gap:8,marginBottom:14}}>
+          <label style={{flex:1,background:'rgba(232,82,26,0.06)',border:'2px dashed rgba(232,82,26,0.3)',borderRadius:16,padding:'16px 10px',textAlign:'center',cursor:'pointer',display:'block'}}>
+            <input type="file" accept="image/*" capture="environment" onChange={handlePhoto} style={{display:'none'}}/>
+            <div style={{fontSize:'1.6rem',marginBottom:4}}>📷</div>
+            <div style={{fontSize:'0.78rem',fontWeight:700,color:C.o}}>{lang==='de'?'Kamera':lang==='fr'?'Caméra':lang==='it'?'Fotocamera':lang==='tr'?'Kamera':lang==='pl'?'Aparat':'Camera'}</div>
+          </label>
+          <label style={{flex:1,background:'rgba(255,255,255,0.03)',border:'2px dashed rgba(255,255,255,0.12)',borderRadius:16,padding:'16px 10px',textAlign:'center',cursor:'pointer',display:'block'}}>
+            <input type="file" accept="image/*" onChange={handlePhoto} style={{display:'none'}}/>
+            <div style={{fontSize:'1.6rem',marginBottom:4}}>🖼️</div>
+            <div style={{fontSize:'0.78rem',fontWeight:700,color:'rgba(255,255,255,0.55)'}}>{lang==='de'?'Foto hochladen':lang==='fr'?'Importer photo':lang==='it'?'Carica foto':lang==='tr'?'Fotoğraf yükle':lang==='pl'?'Prześlij zdjęcie':'Upload photo'}</div>
+          </label>
+        </div>
         <div style={s.card}>
           <div style={{fontSize:'0.65rem',color:C.m,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:10}}>{t('describeWords')}</div>
           <textarea
