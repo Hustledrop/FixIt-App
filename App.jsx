@@ -1034,7 +1034,13 @@ export default function App() {
           </label>
           <label style={{flex:1,background:'rgba(255,255,255,0.03)',border:'2px dashed rgba(255,255,255,0.12)',borderRadius:16,padding:'16px 10px',textAlign:'center',cursor:'pointer',display:'block'}}>
             <input type="file" accept="image/*" onChange={handlePhoto} style={{display:'none'}}/>
-            <div style={{fontSize:'1.6rem',marginBottom:4}}>🖼️</div>
+            <div style={{marginBottom:4,display:'flex',alignItems:'center',justifyContent:'center'}}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="3"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+            </div>
             <div style={{fontSize:'0.78rem',fontWeight:700,color:'rgba(255,255,255,0.55)'}}>{lang==='de'?'Foto hochladen':lang==='fr'?'Importer photo':lang==='it'?'Carica foto':lang==='tr'?'Fotoğraf yükle':lang==='pl'?'Prześlij zdjęcie':'Upload photo'}</div>
           </label>
         </div>

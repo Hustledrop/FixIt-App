@@ -18,7 +18,7 @@ const TYRES_BBOX_EW = 0.12;
 
 // Name filter regex for Overpass — catches tyre shops tagged as generic car_repair
 // This is an Overpass regex, not JS regex — uses ERE syntax
-const TYRE_NAME_REGEX = 'Reifen|Tyre|Tire|Vulkan|Felgen|Räder|Rader|Wheels|Wheel';
+const TYRE_NAME_REGEX = 'Reifen|Tyre|Tire|Vulkan|Felgen|Rader|Wheels|Wheel';
 
 function buildQuery(cat, latN, lngN) {
   // Tyres gets a larger search area
@@ -154,7 +154,7 @@ function fetchOverpass(host, query) {
         'User-Agent':     'FixItApp/1.0 Vercel-Proxy',
         'Accept':         'application/json',
       },
-      timeout: 22000,
+      timeout: 9000,  // 9s per host × 2 hosts = 18s max, safely under Vercel 25s limit
     };
 
     const req = https.request(options, res => {
