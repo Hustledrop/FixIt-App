@@ -3,9 +3,12 @@
 
 const https = require('https');
 
+// FIXIT_NEARBY_FAILOVER_V3
+// Three endpoints: 3 × 7s = 21s max, safely under Vercel 25s limit
 const OVERPASS_ENDPOINTS = [
   'overpass-api.de',
   'overpass.kumi.systems',
+  'maps.mail.ru',       // third public Overpass mirror
 ];
 
 // Standard bbox for all categories (≈7km × 7km at 50°N)
@@ -18,7 +21,8 @@ const TYRES_BBOX_EW = 0.12;
 
 // Name filter regex for Overpass — catches tyre shops tagged as generic car_repair
 // This is an Overpass regex, not JS regex — uses ERE syntax
-const TYRE_NAME_REGEX = 'Reifen|Tyre|Tire|Vulkan|Felgen|Rader|Wheels|Wheel';
+const TYRE_NAME_REGEX  = 'Reifen|Tyre|Tire|Vulkan|Felgen|Rader|Wheels|Wheel';
+const PARTS_NAME_REGEX = 'Autoteile|KFZ.Teile|Kfz.Teile|Ersatzteil|Autozubeh|Zubeh|Teile';
 
 function buildQuery(cat, latN, lngN) {
   // Tyres gets a larger search area
@@ -39,11 +43,21 @@ function buildQuery(cat, latN, lngN) {
       `node["craft"="car_repair"](${b})`,
       `way["craft"="car_repair"](${b})`,
     ],
+    // ── AUTOTEILE — two-pass strategy matching tyres approach ──────────────────
+    // Pass A: exact parts tags — keep all results
+    // Pass B: car_repair/trade with parts-related name — Overpass name~ filter
     parts: [
+      // Pass A: exact parts tags
       `node["shop"="car_parts"](${b})`,
       `way["shop"="car_parts"](${b})`,
       `node["shop"="auto_parts"](${b})`,
       `way["shop"="auto_parts"](${b})`,
+      // Pass A: explicit service:vehicle:parts tag
+      `node["service:vehicle:parts"="yes"](${b})`,
+      `way["service:vehicle:parts"="yes"](${b})`,
+      // Pass B: car_repair with parts-related name (Overpass ERE, ASCII-only keywords)
+      `node["shop"="car_repair"]["name"~"${PARTS_NAME_REGEX}",i](${b})`,
+      `way["shop"="car_repair"]["name"~"${PARTS_NAME_REGEX}",i](${b})`,
     ],
 
     // ── TYRES — two-pass strategy ─────────────────────────────────────────────
@@ -109,9 +123,21 @@ function buildQuery(cat, latN, lngN) {
   return { query: `[out:json][timeout:25];\n(\n  ${lines};\n);\nout center tags;`, south, west, north, east };
 }
 
-// Server-side tyre keyword filter for results that came from broad (Pass B) queries
-// Only needed as a safety net — Overpass name~ filter should already handle it
+// Server-side tyre keyword filter
 const TYRE_KEYWORDS = /reifen|tyre|tire|vulkan|felgen|räder|rader|wheel/i;
+
+// Server-side parts keyword filter — mirrors PARTS_NAME_REGEX but with JS regex (supports umlauts)
+const PARTS_KEYWORDS = /autoteile|kfz.?teile|ersatzteil|autozubeh|zubehör|zubeh/i;
+
+function isPartsRelevant(el) {
+  const tags = el.tags || {};
+  // Exact parts tags → always relevant (Pass A)
+  if (['car_parts','auto_parts'].includes(tags.shop)) return true;
+  if (tags['service:vehicle:parts'] === 'yes') return true;
+  // Broad tags — only if name mentions parts keywords
+  const searchFields = [tags.name, tags.brand, tags.operator, tags.description].filter(Boolean).join(' ');
+  return PARTS_KEYWORDS.test(searchFields);
+}
 
 function isTyreRelevant(el) {
   const tags = el.tags || {};
@@ -154,7 +180,7 @@ function fetchOverpass(host, query) {
         'User-Agent':     'FixItApp/1.0 Vercel-Proxy',
         'Accept':         'application/json',
       },
-      timeout: 9000,  // 9s per host × 2 hosts = 18s max, safely under Vercel 25s limit
+      timeout: 7000,  // 7s per host × 3 hosts = 21s max, safely under Vercel 25s limit
     };
 
     const req = https.request(options, res => {
@@ -225,10 +251,15 @@ module.exports = async function handler(req, res) {
 
   if (!data) {
     console.error(`[nearby] all endpoints failed: ${lastErr?.message}`);
-    if (cat === 'tyres') {
-      console.warn('[nearby] TYRES_FALLBACK reason=endpoint_failure');
-    }
-    res.status(200).json({ results: [], error: lastErr?.message || 'All endpoints failed', cat });
+    console.warn(`[nearby] ${cat.toUpperCase()}_FALLBACK reason=endpoint_failure`);
+    // Always return 200 so frontend can show Maps fallback card — never a crash
+    res.status(200).json({
+      results: [],
+      fallbackUsed: true,
+      fallbackReason: 'endpoint_failure',
+      error: lastErr?.message || 'All endpoints failed',
+      cat,
+    });
     return;
   }
 
@@ -244,11 +275,9 @@ module.exports = async function handler(req, res) {
   elements.forEach(el => {
     if (!el.tags?.name) return;
 
-    // Server-side tyre relevance filter (belt-and-suspenders after Overpass name~ filter)
-    if (cat === 'tyres' && !isTyreRelevant(el)) {
-      filteredOut++;
-      return;
-    }
+    // Server-side relevance filters (belt-and-suspenders after Overpass name~ filter)
+    if (cat === 'tyres' && !isTyreRelevant(el)) { filteredOut++; return; }
+    if (cat === 'parts' && !isPartsRelevant(el)) { filteredOut++; return; }
 
     if (seen[el.tags.name]) return;
     seen[el.tags.name] = true;
@@ -279,15 +308,16 @@ module.exports = async function handler(req, res) {
   out.sort((a, b) => a.dist - b.dist);
   const results = out.slice(0, 25);
 
-  // Tyre-specific debug log
-  if (cat === 'tyres') {
+  // Category debug logs
+  if (cat === 'tyres' || cat === 'parts') {
     const fallbackUsed = results.length === 0;
+    const tag = cat === 'tyres' ? 'TYRES_DEBUG' : 'PARTS_DEBUG';
     console.log(
-      `[nearby] TYRES_DEBUG radius=${radiusKm} rawElements=${rawCount} ` +
+      `[nearby] ${tag} radius=${radiusKm} rawElements=${rawCount} ` +
       `filteredOut=${filteredOut} finalResults=${results.length} fallbackUsed=${fallbackUsed}`
     );
     if (fallbackUsed) {
-      console.warn('[nearby] TYRES_ZERO_RESULTS — frontend will show Google Maps fallback');
+      console.warn(`[nearby] ${cat.toUpperCase()}_ZERO_RESULTS — frontend will show Google Maps fallback`);
     }
   }
 
