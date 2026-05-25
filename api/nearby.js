@@ -3,12 +3,12 @@
 
 const https = require('https');
 
-// FIXIT_NEARBY_FAILOVER_V3
-// Three endpoints: 3 × 7s = 21s max, safely under Vercel 25s limit
+// FIXIT_NEARBY_STABLE_REVERT_V4
+// Two proven endpoints only. 2 × 7s = 14s max, well under Vercel 25s limit.
+// Only proven working mirrors retained.
 const OVERPASS_ENDPOINTS = [
   'overpass-api.de',
   'overpass.kumi.systems',
-  'maps.mail.ru',       // third public Overpass mirror
 ];
 
 // Standard bbox for all categories (≈7km × 7km at 50°N)

@@ -151,17 +151,32 @@ const CSS = `
 `;
 
 export default function App() {
-  // FIXIT_LANG_DETECT_V3
-  // Detect the best language from browser locale.
-  // navigator.languages[] is more reliable than navigator.language on some Android devices.
-  // SS.get('lang') is only used if user has manually selected a language (lang_manually_set flag).
-  // Without the flag, SS may contain stale 'en' from before auto-detection was implemented.
+  // FIXIT_LANG_DETECT_V4
+  // Root cause of English bug: old splash confirm wrote lang_manually_set=true + lang_manually_set_to='en'
+  // to localStorage BEFORE auto-detection was fixed. That stale flag was blocking re-detection.
+  // Fix: version-stamp the detection. If version < 4, clear the stale flag once and re-detect.
+  // After clearing, navigator.languages picks up German/French/etc immediately.
+  // Future manual selections set the version to 4 and are always respected.
+  const LANG_DETECT_VERSION = 4;
   const [lang, setLang]           = useState(() => {
     const SUPPORTED = ['de','fr','it','es','pl','sr','hr','mk','tr'];
-    // Only restore from session/localStorage if user explicitly chose manually
+    // Clear stale lang_manually_set written by old buggy code (before V4)
+    const storedVersion = LS.get('lang_detect_version') || 0;
+    if (storedVersion < LANG_DETECT_VERSION) {
+      // Wipe old state — will be re-set correctly if user confirms manually
+      LS.set('lang_detect_version', LANG_DETECT_VERSION);
+      LS.set('lang_manually_set', null);
+      LS.set('lang_manually_set_to', null);
+      SS.set('lang', null);
+      console.log('[FixIt] LANG_DETECT_V4 cleared stale lang state (version upgrade)');
+    }
+    // Only restore from storage if user explicitly chose manually IN THIS VERSION
     if (LS.get('lang_manually_set')) {
-      const saved = SS.get('lang') || LS.get('lang_manually_set_to');
-      if (saved && (saved === 'en' || SUPPORTED.includes(saved))) return saved;
+      const saved = LS.get('lang_manually_set_to');
+      if (saved && (saved === 'en' || SUPPORTED.includes(saved))) {
+        console.log('[FixIt] LANG_DETECT_V4 using manual selection:', saved);
+        return saved;
+      }
     }
     // Auto-detect from browser locale (navigator.languages[] preferred, then navigator.language)
     const navLangs = (navigator.languages && navigator.languages.length)
@@ -185,10 +200,10 @@ export default function App() {
     return 'en';
   });
   const [selLang, setSelLang]     = useState(() => {
-    // selLang mirrors lang exactly so splash screen shows correct language from first paint
+    // selLang mirrors lang — same version-aware logic, same result
     const SUPPORTED = ['de','fr','it','es','pl','sr','hr','mk','tr'];
     if (LS.get('lang_manually_set')) {
-      const saved = SS.get('lang') || LS.get('lang_manually_set_to');
+      const saved = LS.get('lang_manually_set_to');
       if (saved && (saved === 'en' || SUPPORTED.includes(saved))) return saved;
     }
     const navLangs = (navigator.languages && navigator.languages.length)
