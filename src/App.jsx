@@ -570,22 +570,66 @@ export default function App() {
     const r = aiResult;
     if (!r) return;
 
-    // Build share text
-    const savedLine = r.estimatedCost ? (
-      lang==='de' ? `Mögliches Sparpotenzial: ca. ${r.estimatedCost}` :
-      lang==='tr' ? `Tahmini tasarruf: yaklaşık ${r.estimatedCost}` :
-      lang==='pl' ? `Potencjalne oszczędności: ok. ${r.estimatedCost}` :
-      `Estimated savings: approx. ${r.estimatedCost}`
-    ) : '';
-    const shareText = [
-      lang==='de' ? '🔧 Gerade selbst repariert mit FixIt!' :
-      lang==='tr' ? '🔧 FixIt ile kendim tamir ettim!' :
-      lang==='pl' ? '🔧 Sam naprawiłem z FixIt!' :
-      '🔧 Just fixed it myself with FixIt!',
-      savedLine,
-      r.status || '',
-      `fixit-app.vercel.app`,
-    ].filter(Boolean).join('\n');
+    // ── Build full diagnosis share text ──────────────────────────────────────
+    const APP_URL = 'https://fixit-app-xi.vercel.app/';
+    const prob = (problemRef.current || '').trim();
+
+    // Labels per language
+    const L = {
+      header:    lang==='de' ? 'FIXIT — KI-Diagnose' : lang==='tr' ? 'FIXIT — Yapay Zeka Teşhisi' : lang==='pl' ? 'FIXIT — Diagnoza AI' : 'FIXIT — AI Diagnosis',
+      problem:   lang==='de' ? 'Problem'              : lang==='tr' ? 'Sorun'                       : lang==='pl' ? 'Problem'               : 'Problem',
+      confidence:lang==='de' ? 'Diagnose-Sicherheit'  : lang==='tr' ? 'Güven'                       : lang==='pl' ? 'Pewność'               : 'Confidence',
+      diagnosis: lang==='de' ? 'Diagnose'             : lang==='tr' ? 'Teşhis'                       : lang==='pl' ? 'Diagnoza'              : 'Diagnosis',
+      causes:    lang==='de' ? 'Mögliche Ursachen'    : lang==='tr' ? 'Olası nedenler'               : lang==='pl' ? 'Możliwe przyczyny'     : 'Possible causes',
+      steps:     lang==='de' ? 'Reparaturschritte'    : lang==='tr' ? 'Onarım adımları'              : lang==='pl' ? 'Kroki naprawy'         : 'Repair steps',
+      tools:     lang==='de' ? 'Werkzeug / Material'  : lang==='tr' ? 'Araçlar / Malzeme'            : lang==='pl' ? 'Narzędzia / Materiały' : 'Tools / Materials',
+      parts:     lang==='de' ? 'Ersatzteile'          : lang==='tr' ? 'Yedek parçalar'               : lang==='pl' ? 'Części zamienne'       : 'Parts needed',
+      tip:       lang==='de' ? 'Experten-Tipp'        : lang==='tr' ? 'Uzman ipucu'                  : lang==='pl' ? 'Porada eksperta'       : 'Expert tip',
+      safety:    lang==='de' ? 'Sicherheitshinweis'   : lang==='tr' ? 'Güvenlik uyarısı'             : lang==='pl' ? 'Ostrzeżenie'           : 'Safety warning',
+      savings:   lang==='de' ? 'Sparpotenzial ca.'    : lang==='tr' ? 'Tahmini tasarruf'             : lang==='pl' ? 'Potencjalne oszczędności' : 'Est. savings',
+      footer:    lang==='de' ? 'Erstellt mit FixIt'   : lang==='tr' ? 'FixIt ile oluşturuldu'        : lang==='pl' ? 'Utworzono w FixIt'     : 'Created with FixIt',
+    };
+
+    const lines = [];
+    lines.push(`🔧 ${L.header}`);
+    lines.push('─'.repeat(28));
+    if (prob)              lines.push(`${L.problem}: ${prob}`);
+    if (r.confidence)      lines.push(`${L.confidence}: ${r.confidence}%`);
+    if (r.estimatedCost)   lines.push(`💰 ${L.savings}: ${r.estimatedCost}`);
+    if (r.safetyWarning)   lines.push(`⚠️ ${L.safety}: ${r.safetyWarning}`);
+    lines.push('');
+    if (r.diagnosis)       lines.push(`📋 ${L.diagnosis}\n${r.diagnosis}`);
+    if (r.causes?.length) {
+      lines.push('');
+      lines.push(`🔍 ${L.causes}:`);
+      r.causes.forEach(c => lines.push(`• ${c}`));
+    }
+    if (r.steps?.length) {
+      lines.push('');
+      lines.push(`🛠 ${L.steps}:`);
+      r.steps.forEach((s, i) => {
+        lines.push(`${i + 1}. ${s.title}`);
+        if (s.description) lines.push(`   ${s.description}`);
+      });
+    }
+    if (r.tools?.length) {
+      lines.push('');
+      lines.push(`🔩 ${L.tools}:`);
+      r.tools.forEach(t => lines.push(`• ${t}`));
+    }
+    if (r.partsNeeded?.length) {
+      lines.push('');
+      lines.push(`📦 ${L.parts}:`);
+      r.partsNeeded.forEach(p => lines.push(`• ${p}`));
+    }
+    if (r.proTip) {
+      lines.push('');
+      lines.push(`💡 ${L.tip}: ${r.proTip}`);
+    }
+    lines.push('');
+    lines.push(`${L.footer}: ${APP_URL}`);
+
+    const shareText = lines.join('\n');
 
     // Try canvas share card first, fall back to text share
     try {
