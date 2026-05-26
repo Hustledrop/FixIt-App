@@ -503,6 +503,22 @@ module.exports = async function handler(req, res) {
 
       `Be specific and expert, but concise. Name the exact component and real tool names. Diagnosis max 2 short sentences. Max 4 causes. Max 4 steps. Each step description max 2 short sentences. Each tip max 1 short sentence. Avoid advanced technician-only explanations unless absolutely necessary. Keep JSON compact and valid.`,
 
+      // ── VISION ANALYSIS RULES — only active when user uploads a photo ──────
+      ...(hasImage ? [
+        `PHOTO PROVIDED — you MUST visually analyse this specific image before answering. Do not give generic advice.`,
+        `Lead your diagnosis with what you actually SEE: location, size, severity, surface condition.`,
+        `Your steps must describe repair actions for the VISIBLE damage in this photo — not hypothetical general advice.`,
+        `Visual inspection checklist (address each that is relevant):`,
+        `— Location: where exactly is the damage on the part/panel?`,
+        `— Severity: shallow surface scratch, crease, deep dent, crack, deformation?`,
+        `— Paint: intact and uncracked, or chipped/cracked/showing metal?`,
+        `— Panel access: can you reach behind it, or is it a closed section?`,
+        `— For dents: is the dent close to a crease, edge, or flat panel centre?`,
+        `For car body dents specifically: state explicitly whether PDR (Paintless Dent Repair) is realistic for THIS dent. State whether suction cup or glue pull tabs would work, or if a dent rod/body hammer is needed. State whether a repaint is likely required.`,
+        `Tone: you are a skilled repair technician — confident, direct, practical. No hedging. No "damage can happen from impacts". No generic safety boilerplate unless genuinely needed.`,
+        `DIY assessment: give an honest "can the user do this alone?" answer based on the actual visible damage — not a generic disclaimer.`,
+      ] : []),
+
       // Build vehicle-aware partsNeeded instruction
       // When intelligentParts exist: force the AI to use them exactly (pre-computed from knowledge table)
       // When vehicle known but no table match: instruct AI to generate vehicle-specific queries
