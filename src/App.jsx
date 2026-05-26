@@ -493,20 +493,52 @@ export default function App() {
     const r = new FileReader();
     r.onload = ev => {
       const dataUrl = ev.target.result;
-      const b64 = dataUrl.split(',')[1];
-      const realMime = detectMime(b64);
+      const rawB64  = dataUrl.split(',')[1];
+      const rawMime = detectMime(rawB64);
 
-      if (!realMime) {
-        // HEIC, TIFF, BMP or other unsupported format
+      if (!rawMime) {
+        // HEIC, TIFF, BMP, or other unsupported format
         showToast(lang === 'de'
           ? '⚠️ Bildformat nicht unterstützt. Bitte JPG, PNG oder WebP verwenden.'
           : '⚠️ Image format not supported. Please upload JPG, PNG or WebP.');
         return;
       }
 
-      setPhoto(dataUrl);
-      setPhotoB64(b64);
-      setPhotoMime(realMime); // always use detected MIME, not browser's f.type
+      // ── Compress image before sending to Claude ──────────────────────────
+      // Anthropic's image limit: ~5MB base64 / ~3.75MB raw.
+      // Full-res iPhone photos can be 6-12MB → compression is required.
+      // Canvas resize to max 1500px on longest side, JPEG quality 0.85.
+      // This gives ≈ 200–600KB — well within limits and faster to process.
+      const img = new window.Image();
+      img.onload = () => {
+        const MAX = 1500;
+        let w = img.naturalWidth;
+        let h = img.naturalHeight;
+        if (w > MAX || h > MAX) {
+          if (w >= h) { h = Math.round(h * MAX / w); w = MAX; }
+          else         { w = Math.round(w * MAX / h); h = MAX; }
+        }
+        const canvas  = document.createElement('canvas');
+        canvas.width  = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        const compressed = canvas.toDataURL('image/jpeg', 0.85);
+        const b64        = compressed.split(',')[1];
+        console.log('[FixIt] PHOTO_COMPRESSED orig=%dKB compressed=%dKB (%dx%d)',
+          Math.round(rawB64.length * 3 / 4 / 1024),
+          Math.round(b64.length * 3 / 4 / 1024), w, h);
+        setPhoto(compressed);
+        setPhotoB64(b64);
+        setPhotoMime('image/jpeg'); // always JPEG after canvas compression
+      };
+      img.onerror = () => {
+        // Fallback: use original if canvas fails (should not happen for valid JPEG/PNG/WebP)
+        setPhoto(dataUrl);
+        setPhotoB64(rawB64);
+        setPhotoMime(rawMime);
+      };
+      img.src = dataUrl;
     };
     r.readAsDataURL(f);
   }
@@ -1694,7 +1726,13 @@ export default function App() {
             {ec.call==='vet'&&<>{cd.ph?.num&&<CallBtn icon="🐾" label={`${cd.ph.n}: ${cd.ph.num}`} num={cd.ph.num} type="s"/>}{cd.pa?.num&&cd.pa.num.length>3&&<CallBtn icon="🚑" label={`${cd.pa.n}: ${cd.pa.num}`} num={cd.pa.num} type="i"/>}<MapBtn icon="🗺️" label={t('emergencyVet')} query="emergency vet open now 24h"/><MapBtn icon="🏥" label={t('animalClinicNear')} query="animal clinic veterinarian near me"/></>}
             {ec.call==='fire'&&<><CallBtn icon="🚒" label={`Fire: ${cd.fire}`} num={cd.fire}/><CallBtn icon="🆘" label={`Emergency: ${cd.e}`} num={cd.e}/></>}
             {ec.call==='plumber'&&<><CallBtn icon="🆘" label={`Emergency: ${cd.e}`} num={cd.e}/><MapBtn icon="🔧" label={t('emergencyPlumber')} query={t('plumberQuery')}/></>}
-            {ec.call==='power'&&<><CallBtn icon="🆘" label={`Emergency: ${cd.e}`} num={cd.e}/><MapBtn icon="⚡" label={t('electricityProvider')} query={cc==='DE'?'Stadtwerke Strom Störung Netzbetreiber Stromausfall':cc==='AT'?'Stromnetz Störung Stadtwerke':cc==='CH'?'Stromnetzbetreiber Störung':cc==='FR'?'panne électrique signaler fournisseur':cc==='GB'?'power cut report network operator':cc==='US'?'power outage report electric utility':'electricity power outage report'}/></>}
+            {ec.call==='power'&&<>
+                  <CallBtn icon="🆘" label={`Emergency: ${cd.e}`} num={cd.e}/>
+                  <MapBtn icon="⚡" label={lang==='de'?'Stadtwerke suchen':lang==='fr'?'Fournisseur électricité':lang==='it'?'Fornitore elettricità':lang==='tr'?'Elektrik şirketi':'Local power utility'}
+                    query={cc==='DE'?'Stadtwerke in der Nähe':cc==='AT'?'Stadtwerke in der Nähe':cc==='CH'?'Elektrizitätswerk in der Nähe':cc==='FR'?'fournisseur électricité':cc==='GB'?'electricity supplier near me':cc==='US'?'electric utility near me':'electricity supplier near me'}/>
+                  <MapBtn icon="🔌" label={lang==='de'?'Stromversorger suchen':lang==='fr'?'Gestionnaire réseau':lang==='it'?'Gestore rete elettrica':lang==='tr'?'Şebeke operatörü':'Grid operator'}
+                    query={cc==='DE'?'Stromversorger in der Nähe':cc==='AT'?'Stromversorger in der Nähe':cc==='CH'?'Stromversorger in der Nähe':cc==='FR'?'gestionnaire réseau électrique':cc==='GB'?'grid operator near me':cc==='US'?'power company near me':'power company near me'}/>
+                </>}
             {ec.call==='emergency'&&<CallBtn icon="🆘" label={`Emergency: ${cd.e}`} num={cd.e}/>}
           </div>
           <div style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:14,padding:14,marginBottom:12}}>

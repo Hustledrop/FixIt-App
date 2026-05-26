@@ -443,8 +443,9 @@ module.exports = async function handler(req, res) {
     ? vehiclePartSuggestions(vehicleCtx, partType, prob)
     : null;
 
-  console.log('[FixIt] REQUEST cat=%s lang=%s hasText=%s hasImage=%s vehicle=%s partType=%s intelligentParts=%s prob=%s',
-    cat, lang2, hasText, hasImage,
+  const photoKB = hasImage ? Math.round(photoB64.length * 3 / 4 / 1024) : 0;
+  console.log('[FixIt] REQUEST cat=%s lang=%s hasText=%s hasImage=%s photoKB=%d vehicle=%s partType=%s intelligentParts=%s prob=%s',
+    cat, lang2, hasText, hasImage, photoKB,
     vehicleCtx ? JSON.stringify(vehicleCtx) : 'none',
     partType || 'none',
     intelligentParts ? JSON.stringify(intelligentParts) : 'none',
@@ -482,8 +483,9 @@ module.exports = async function handler(req, res) {
     const mime = detectMime(photoB64);
     if (mime) {
       content.push({ type: 'image', source: { type: 'base64', media_type: mime, data: photoB64 } });
+      console.log('[FixIt] IMAGE_BLOCK_ADDED mime=%s photoKB=%d', mime, photoKB);
     } else {
-      console.warn('[FixIt] Image MIME unknown — text-only');
+      console.warn('[FixIt] Image MIME unknown — photoB64 starts with: %s', photoB64.slice(0, 20));
     }
   }
 
