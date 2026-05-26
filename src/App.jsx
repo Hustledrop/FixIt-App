@@ -216,15 +216,31 @@ export default function App() {
   });
   // Region detected from browser locale (e.g. 'CH' from 'de-CH')
   // Used to override cc when GPS isn't available yet
+  // detectedRegion: timezone-based country (physical location proxy)
+  // Better than navigator.language suffix because timezone reflects where the device IS,
+  // not what language it uses. Croatian phone in Germany → 'Europe/Berlin' → 'DE'.
   const [detectedRegion, setDetectedRegion] = useState(() => {
-    const full = (navigator.language || '').toLowerCase(); // e.g. 'de-ch'
-    const parts = full.split('-');
-    if (parts.length >= 2) {
-      const region = parts[1].toUpperCase(); // 'CH', 'DE', 'AT', 'FR', etc.
-      const SUPPORTED_CC = ['CH','DE','AT','GB','FR','IT','ES','PL','US'];
-      if (SUPPORTED_CC.includes(region)) return region;
-    }
-    return null;
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+      const TZ_TO_CC = {
+        'Europe/Berlin':'DE','Europe/Vienna':'AT','Europe/Zurich':'CH',
+        'Europe/London':'GB','Europe/Dublin':'IE','Europe/Paris':'FR',
+        'Europe/Madrid':'ES','Europe/Rome':'IT','Europe/Warsaw':'PL',
+        'Europe/Zagreb':'HR','Europe/Belgrade':'RS','Europe/Skopje':'MK',
+        'Europe/Sarajevo':'BA','Europe/Istanbul':'TR','Europe/Bucharest':'RO',
+        'Europe/Sofia':'BG','Europe/Athens':'GR','Europe/Prague':'CZ',
+        'Europe/Budapest':'HU','Europe/Amsterdam':'NL','Europe/Brussels':'BE',
+        'Europe/Stockholm':'SE','Europe/Copenhagen':'DK','Europe/Helsinki':'FI',
+        'Europe/Oslo':'NO','Europe/Lisbon':'PT','Europe/Kiev':'UA',
+        'America/New_York':'US','America/Chicago':'US','America/Denver':'US',
+        'America/Los_Angeles':'US','America/Toronto':'CA','America/Vancouver':'CA',
+        'Australia/Sydney':'AU','Australia/Melbourne':'AU',
+        'Asia/Tokyo':'JP','Asia/Seoul':'KR','Asia/Shanghai':'CN',
+      };
+      const cc = TZ_TO_CC[tz] || null;
+      console.log('[FixIt] REGION_INIT timezone=' + tz + ' → cc=' + (cc||'null'));
+      return cc;
+    } catch (_) { return null; }
   });
   const [showLP, setShowLP]       = useState(false);
   const [screen, setScreen]       = useState('splash'); // always start at splash; restore happens in boot effect
@@ -937,6 +953,30 @@ export default function App() {
           <div style={{fontSize:'2.8rem',marginBottom:8}}>{l.f}</div>
           <div style={{fontSize:'1.2rem',fontWeight:800,marginBottom:4}}>{l.n} — {l.na}</div>
         </div>
+        {ready && (() => {
+          // Show detected country/region separately from language
+          const regionCC  = country !== 'DEFAULT' ? country : detectedRegion;
+          const regionCD  = regionCC ? getCountry(regionCC) : null;
+          const regionLabel = regionCD ? `${regionCD.flag || ''} ${regionCD.name}` : null;
+          const locationSrc = country !== 'DEFAULT'
+            ? (selLang==='de'?'GPS':'GPS')
+            : detectedRegion
+            ? (selLang==='de'?'Zeitzone':'Timezone')
+            : null;
+          return (<>
+            {regionLabel && (
+              <div style={{display:'flex',alignItems:'center',gap:8,fontSize:'0.78rem',
+                color:'rgba(255,255,255,0.45)',marginBottom:4,marginTop:-8}}>
+                <span>📍</span>
+                <span>
+                  {selLang==='de'?'Standort erkannt':selLang==='fr'?'Emplacement détecté':selLang==='it'?'Posizione rilevata':selLang==='tr'?'Konum algılandı':selLang==='pl'?'Wykryto lokalizację':'Location detected'}:&nbsp;
+                  <strong style={{color:'rgba(255,255,255,0.7)'}}>{regionLabel}</strong>
+                  {locationSrc && <span style={{fontSize:'0.65rem',color:'rgba(255,255,255,0.25)',marginLeft:4}}>({locationSrc})</span>}
+                </span>
+              </div>
+            )}
+          </>);
+        })()}
         {ready && <>
           <button onClick={confirmLang} style={{...s.btn,maxWidth:340,borderRadius:16,padding:16,fontSize:'1rem'}}>
             {ts('continueIn')} {l.na} →

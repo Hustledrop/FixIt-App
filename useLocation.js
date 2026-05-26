@@ -34,11 +34,57 @@ export function useLocation() {
     );
   }, []);
 
-  // Return best country code: GPS country → lang fallback → DEFAULT
-  const getCC = useCallback((lang) => {
-    if (country && country !== 'DEFAULT') return country;
-    const g = LANG_TO_CC[lang];
-    return (g && COUNTRIES[g]) ? g : 'DEFAULT';
+  // Timezone → country code mapping (no network call, instant, browser-agnostic)
+  // Better than language suffix because:
+  // - Croatian worker in Germany → 'Europe/Berlin' → DE ✅
+  // - Messenger in-app browsers with different locale → timezone unchanged ✅
+  function getTimezoneCC() {
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+      const TZ_MAP = {
+        'Europe/Berlin':'DE','Europe/Vienna':'AT','Europe/Zurich':'CH',
+        'Europe/London':'GB','Europe/Dublin':'IE','Europe/Paris':'FR',
+        'Europe/Madrid':'ES','Europe/Rome':'IT','Europe/Warsaw':'PL',
+        'Europe/Zagreb':'HR','Europe/Belgrade':'RS','Europe/Skopje':'MK',
+        'Europe/Sarajevo':'BA','Europe/Istanbul':'TR','Europe/Bucharest':'RO',
+        'Europe/Sofia':'BG','Europe/Athens':'GR','Europe/Prague':'CZ',
+        'Europe/Budapest':'HU','Europe/Amsterdam':'NL','Europe/Brussels':'BE',
+        'Europe/Stockholm':'SE','Europe/Copenhagen':'DK','Europe/Helsinki':'FI',
+        'Europe/Oslo':'NO','Europe/Lisbon':'PT','Europe/Kiev':'UA',
+        'America/New_York':'US','America/Chicago':'US','America/Denver':'US',
+        'America/Los_Angeles':'US','America/Toronto':'CA','America/Vancouver':'CA',
+        'Australia/Sydney':'AU','Australia/Melbourne':'AU',
+        'Asia/Tokyo':'JP','Asia/Seoul':'KR','Asia/Shanghai':'CN',
+        'Asia/Dubai':'AE','Asia/Riyadh':'SA',
+      };
+      const cc = TZ_MAP[tz];
+      return (cc && COUNTRIES[cc]) ? cc : null;
+    } catch (_) { return null; }
+  }
+
+  // Return best country code:
+  // Priority: GPS reverse-geocode → timezone → lang-suffix region → DEFAULT
+  // Language does NOT control country — they are fully independent.
+  const getCC = useCallback((lang, detectedRegion) => {
+    // GPS always wins — this is the primary fix for "Croatian phone in Germany"
+    if (country && country !== 'DEFAULT') {
+      console.log('[FixIt] REGION GPS:', country);
+      return country;
+    }
+    // Timezone is a better pre-GPS signal than language suffix
+    // (timezone reflects physical location, not phone locale)
+    const tzCC = getTimezoneCC();
+    if (tzCC) {
+      console.log('[FixIt] REGION timezone:', tzCC);
+      return tzCC;
+    }
+    // detectedRegion from navigator.language suffix — last resort before DEFAULT
+    if (detectedRegion && COUNTRIES[detectedRegion]) {
+      console.log('[FixIt] REGION locale-suffix:', detectedRegion);
+      return detectedRegion;
+    }
+    console.log('[FixIt] REGION DEFAULT (no GPS, no timezone match)');
+    return 'DEFAULT';
   }, [country]);
 
   return { lat, lng, city, country, locStatus, requestLocation, getCC };
