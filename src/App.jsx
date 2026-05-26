@@ -259,7 +259,16 @@ export default function App() {
   const [aiMsgIdx, setAiMsgIdx]   = useState(0);
   const [feedback, setFeedback]   = useState(null); // null | 'fixed' | 'broken'
   const [toast, setToast]         = useState(null);
-  const [history, setHistory]     = useState(() => LS.get('history') || []);
+  const [history, setHistory]     = useState(() => {
+    // One-time migration: clean old corrupted/incomplete history entries on load
+    const raw = LS.get('history') || [];
+    const valid = raw.filter(h => h && h.problem && (h.diagnosis || h.confidence));
+    if (valid.length !== raw.length) {
+      // Silently persist the cleaned version
+      LS.set('history', valid);
+    }
+    return valid;
+  });
   const [showHistory, setShowHistory] = useState(false);
   const [nearbyBump, setNearbyBump]   = useState(0); // increment to force nearby refresh
   const [isOnline, setIsOnline]   = useState(navigator.onLine);
@@ -526,6 +535,10 @@ export default function App() {
     diagCategoryRef.current = curFix;
     setPrevScr('fix-now');
     setFeedback(null);
+    // Clear stale SS.aiResult BEFORE entering result screen
+    // Without this, result screen shows old title while new diagnosis loads
+    SS.set('aiResult', null);
+    SS.set('aiProblem', prob);
     goto('result');
     await diagnose({ problem: prob, photoB64: override ? null : photoB64, photoMime: override ? null : photoMime, category: curFix, lang, countryName: cd.name, userProfile: profile });
   }
@@ -1021,7 +1034,14 @@ export default function App() {
           <div style={{fontSize:'1.5rem',fontWeight:900}}>FIX<span style={{color:C.o}}>IT</span></div>
           <div style={{display:'flex',alignItems:'center',gap:8}}>
             {lat && <div style={{fontSize:'0.7rem',color:C.g,background:'rgba(26,158,92,0.1)',border:'1px solid rgba(26,158,92,0.2)',borderRadius:100,padding:'4px 10px'}}>📍 {city||`${lat.toFixed(2)},${lng.toFixed(2)}`}</div>}
-            {history.length > 0 && <button onClick={()=>setShowHistory(true)} style={{background:C.c,border:`1px solid ${C.b}`,borderRadius:100,padding:'5px 10px',fontSize:'0.7rem',cursor:'pointer',color:C.m,fontFamily:'inherit'}}>{lang==='de'?`🕐 ${history.length} Diagnosen`:`🕐 ${history.length} ${history.length===1?'repair':'repairs'}`}</button>}
+            {(() => {
+              const vhCount = history.filter(h=>h&&h.problem&&(h.diagnosis||h.confidence)).length;
+              return vhCount > 0 && (
+                <button onClick={()=>setShowHistory(true)} style={{background:C.c,border:`1px solid ${C.b}`,borderRadius:100,padding:'5px 10px',fontSize:'0.7rem',cursor:'pointer',color:C.m,fontFamily:'inherit'}}>
+                  {lang==='de'?`🕐 ${vhCount} ${vhCount===1?'Diagnose':'Diagnosen'}`:`🕐 ${vhCount} ${vhCount===1?'repair':'repairs'}`}
+                </button>
+              );
+            })()}
             <button onClick={()=>setShowLP(true)} style={{background:C.c,border:`1px solid ${C.b}`,borderRadius:100,padding:'5px 12px',fontSize:'0.8rem',cursor:'pointer',color:C.m,fontFamily:'inherit'}}>{LANGS[lang]?.f} {lang.toUpperCase()}</button>
           </div>
         </div>
@@ -1306,8 +1326,9 @@ export default function App() {
   // ── RESULT ───────────────────────────────────────────────────────────────────
   if (screen === 'result') {
     // When reopening a history entry, aiResult (from useAI hook) may be null.
-    // Fall back to SS.get('aiResult') which was written by the history drawer.
-    const r   = aiResult || SS.get('aiResult');
+    // Only use SS fallback when NOT loading a new diagnosis — prevents old title showing
+    // during new analysis. SS.aiResult is cleared at start of every new runFix().
+    const r   = aiResult || (!aiLoading ? SS.get('aiResult') : null);
     const pct = r?.confidence||0;
     const col = r?.callPro?C.r:pct<60?C.y:C.g;
     const ci  = 170, off = ci-(ci*pct/100);
