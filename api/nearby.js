@@ -16,8 +16,8 @@ const BBOX_NS = 0.03;
 const BBOX_EW = 0.05;
 
 // Tyres uses a larger bbox (≈10km radius) because tyre shops are sparse
-const TYRES_BBOX_NS = 0.09;
-const TYRES_BBOX_EW = 0.12;
+const TYRES_BBOX_NS = 0.05;  // reduced from 0.09 (20km) to 0.05 (11km) — fits 7s Overpass budget
+const TYRES_BBOX_EW = 0.07;  // proportional reduction
 
 // Name filter regex for Overpass — catches tyre shops tagged as generic car_repair
 // This is an Overpass regex, not JS regex — uses ERE syntax
@@ -120,7 +120,7 @@ function buildQuery(cat, latN, lngN) {
   };
 
   const lines = (parts[cat] || parts.garage).join(';\n  ');
-  return { query: `[out:json][timeout:25];\n(\n  ${lines};\n);\nout center tags;`, south, west, north, east };
+  return { query: `[out:json][timeout:10];\n(\n  ${lines};\n);\nout center tags;`, south, west, north, east };
 }
 
 // Server-side tyre keyword filter

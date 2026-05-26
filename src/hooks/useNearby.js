@@ -63,7 +63,23 @@ export function useNearby() {
 
     try {
       const url = `/api/nearby?cat=${encodeURIComponent(cat)}&lat=${lat}&lng=${lng}`;
-      const res = await fetch(url);
+      // 6s client-side timeout: show Maps fallback fast if Overpass is cold/slow
+      // The server request continues; if it resolves later, we update silently.
+      const controller = new AbortController();
+      const fetchTimer = setTimeout(() => controller.abort(), 6000);
+      let res;
+      try {
+        res = await fetch(url, { signal: controller.signal });
+        clearTimeout(fetchTimer);
+      } catch (abortErr) {
+        clearTimeout(fetchTimer);
+        // Timed out on client side — show fallback immediately
+        if (thisReq !== reqId.current) return;
+        setFallback(true);
+        if (!cached) setError('empty'); // triggers Maps fallback card
+        setLoading(false);
+        return;
+      }
       if (!res.ok) throw new Error(`API HTTP ${res.status}`);
       const data = await res.json();
       if (thisReq !== reqId.current) return;
