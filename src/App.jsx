@@ -1047,32 +1047,165 @@ export default function App() {
       </div>
       <Scroll>
         {/* History modal */}
-        {showHistory && (
-          <div onClick={()=>setShowHistory(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',zIndex:100,display:'flex',alignItems:'flex-end'}}>
-            <div onClick={e=>e.stopPropagation()} style={{background:'#151310',borderRadius:'26px 26px 0 0',width:'100%',maxHeight:'70vh',overflowY:'auto',padding:20}}>
-              <div style={{fontSize:'1rem',fontWeight:800,marginBottom:16}}>🕐 {lang==='de'?'Verlauf':lang==='tr'?'Tamir Geçmişi':lang==='pl'?'Historia Napraw':lang==='mk'?'Историја':lang==='hr'?'Povijest':'Repair History'}</div>
-              {history.filter(h => h && h.problem && (h.diagnosis || h.confidence)).map(h=>(
-                <div key={h.id} style={{...s.card,marginBottom:8}}>
-                  <div style={{fontSize:'0.82rem',fontWeight:700,marginBottom:4}}>{h.problem}</div>
-                  <div style={{fontSize:'0.72rem',color:C.m,marginBottom:6}}>{h.diagnosis}</div>
-                  <div style={{display:'flex',alignItems:'center',gap:8}}>
-                    <span style={{fontSize:'0.65rem',color:C.m}}>{h.date && !isNaN(new Date(h.date)) ? new Date(h.date).toLocaleDateString() : (lang==='de'?'Kürzlich':lang==='tr'?'Yakın zamanda':lang==='pl'?'Ostatnio':'Recently')}</span>
-                    {h.fixed===true && <span style={{fontSize:'0.65rem',color:C.g}}>{lang==='de'?'✅ Behoben':lang==='tr'?'✅ Çözüldü':lang==='pl'?'✅ Naprawiono':'✅ Fixed'}</span>}
-                    {h.fixed===false && <span style={{fontSize:'0.65rem',color:C.r}}>{lang==='de'?'❌ Nicht behoben':lang==='tr'?'❌ Çözülmedi':lang==='pl'?'❌ Nie naprawiono':'❌ Not fixed'}</span>}
-                    <button onClick={()=>{problemRef.current=h.problem;setCurFix('home');setShowHistory(false);goto('result');diagnose({problem:h.problem,category:'home',lang,countryName:cd.name});}} style={{marginLeft:'auto',background:C.o,border:'none',borderRadius:8,padding:'4px 10px',color:'#fff',fontSize:'0.65rem',fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>{lang==='de'?'Erneut':'Try again'}</button>
+        {showHistory && (() => {
+          const validHistory = history.filter(h => h && h.problem && (h.diagnosis || h.confidence));
+          const CAT_IC = {home:'🏠',car:'🚗',tech:'📱',appliances:'⚙️',garden:'🌿',bike:'🚲',pets:'🐾'};
+          const fmtDate = (d) => {
+            if (!d || isNaN(new Date(d))) return lang==='de'?'Kürzlich':lang==='tr'?'Yakın zamanda':lang==='pl'?'Ostatnio':'Recently';
+            const dt = new Date(d), now = new Date();
+            const diffH = (now - dt) / 3600000;
+            if (diffH < 24) return lang==='de'?'Heute':lang==='tr'?'Bugün':lang==='pl'?'Dzisiaj':'Today';
+            if (diffH < 48) return lang==='de'?'Gestern':lang==='tr'?'Dün':lang==='pl'?'Wczoraj':'Yesterday';
+            return dt.toLocaleDateString(lang==='de'?'de-DE':lang==='tr'?'tr-TR':lang==='pl'?'pl-PL':'en-GB',{day:'numeric',month:'short'});
+          };
+          return (
+          <div onClick={()=>setShowHistory(false)} style={{
+            position:'fixed',inset:0,
+            background:'rgba(0,0,0,0.75)',
+            backdropFilter:'blur(12px)',WebkitBackdropFilter:'blur(12px)',
+            zIndex:200,display:'flex',alignItems:'flex-end',
+            animation:'fadeIn .18s ease',
+          }}>
+            <div onClick={e=>e.stopPropagation()} style={{
+              background:'linear-gradient(180deg,#181412 0%,#111009 100%)',
+              borderRadius:'24px 24px 0 0',width:'100%',
+              boxShadow:'0 -8px 60px rgba(0,0,0,0.7),0 -1px 0 rgba(255,255,255,0.06)',
+              display:'flex',flexDirection:'column',
+              maxHeight:'82vh',
+              // Clear bottom nav + safe area
+              paddingBottom:'max(100px,calc(80px + env(safe-area-inset-bottom)))',
+            }}>
+              {/* Drag handle */}
+              <div style={{display:'flex',justifyContent:'center',paddingTop:12,paddingBottom:4,flexShrink:0}}>
+                <div style={{width:36,height:4,borderRadius:2,background:'rgba(255,255,255,0.12)'}}/>
+              </div>
+              {/* Sticky header */}
+              <div style={{
+                display:'flex',alignItems:'center',justifyContent:'space-between',
+                padding:'10px 20px 14px',
+                borderBottom:'1px solid rgba(255,255,255,0.06)',
+                flexShrink:0,
+              }}>
+                <div>
+                  <div style={{fontSize:'1rem',fontWeight:800,color:'#F0EDE8',letterSpacing:'-0.01em'}}>
+                    {lang==='de'?'Diagnosen':lang==='tr'?'Geçmiş':lang==='pl'?'Historia':'Diagnoses'}
+                  </div>
+                  <div style={{fontSize:'0.65rem',color:'rgba(255,255,255,0.28)',marginTop:2}}>
+                    {validHistory.length} {lang==='de'?'gespeichert':lang==='tr'?'kayıtlı':lang==='pl'?'zapisanych':'saved'}
+                    {totalSaved > 0 && <span style={{marginLeft:8,color:'rgba(26,158,92,0.8)'}}>· ca. €{totalSaved} {lang==='de'?'gespart':'saved'}</span>}
                   </div>
                 </div>
-              ))}
-              {history.length === 0 && <div style={{textAlign:'center',color:C.m,padding:'20px 0'}}>No repairs yet</div>}
-              {totalSaved > 0 && <div style={{background:'rgba(26,158,92,0.08)',border:'1px solid rgba(26,158,92,0.18)',borderRadius:10,padding:'10px 14px',marginBottom:12,textAlign:'center'}}>
-                <div style={{fontSize:'0.65rem',color:C.m,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:2}}>{lang==='de'?'Mögliches Sparpotenzial mit FixIt':lang==='tr'?'FixIt ile tahmini tasarruf':lang==='pl'?'Potencjalne oszczędności z FixIt':'Estimated savings with FixIt'}</div>
-                <div style={{fontSize:'1.5rem',fontWeight:900,color:C.g}}>ca. €{totalSaved}</div>
-                <div style={{fontSize:'0.6rem',color:'rgba(255,255,255,0.22)',marginTop:4}}>{lang==='de'?'Schätzung basierend auf typischen Reparaturkosten. Keine Garantie.':lang==='tr'?'Tipik onarım maliyetlerine göre tahmin. Garanti yoktur.':lang==='pl'?'Szacunek oparty na typowych kosztach naprawy. Bez gwarancji.':'Estimate based on typical repair costs. No guarantee.'}</div>
-              </div>}
-              <button onClick={()=>{setHistory([]);LS.set('history',[]);setTotalSaved(0);LS.set('totalSaved',0);}} style={{...s.btn,...s.btnSec,marginTop:8,fontSize:'0.78rem',padding:'10px'}}>{lang==='de'?'Verlauf löschen':lang==='tr'?'Geçmişi temizle':lang==='pl'?'Wyczyść historię':'Clear history'}</button>
+                <button onClick={()=>setShowHistory(false)} style={{
+                  background:'rgba(255,255,255,0.07)',border:'1px solid rgba(255,255,255,0.1)',
+                  borderRadius:10,width:36,height:36,cursor:'pointer',color:'rgba(255,255,255,0.6)',
+                  fontSize:'1rem',display:'flex',alignItems:'center',justifyContent:'center',
+                  fontFamily:'inherit',
+                }}>✕</button>
+              </div>
+              {/* Scrollable list */}
+              <div style={{overflowY:'auto',flex:1,padding:'12px 16px 0'}}>
+                {validHistory.length === 0 && (
+                  <div style={{textAlign:'center',padding:'48px 0'}}>
+                    <div style={{fontSize:'2.5rem',marginBottom:12,opacity:0.4}}>🔧</div>
+                    <div style={{fontSize:'0.85rem',fontWeight:600,color:'rgba(255,255,255,0.3)'}}>
+                      {lang==='de'?'Noch keine Diagnosen gespeichert':lang==='tr'?'Henüz tanı kaydedilmedi':lang==='pl'?'Brak zapisanych diagnoz':'No diagnoses saved yet'}
+                    </div>
+                  </div>
+                )}
+                {validHistory.map((h,idx2)=>(
+                  <div key={h.id} style={{
+                    background: idx2===0 ? 'rgba(232,82,26,0.05)' : 'rgba(255,255,255,0.03)',
+                    border:`1px solid ${idx2===0 ? 'rgba(232,82,26,0.18)' : 'rgba(255,255,255,0.06)'}`,
+                    borderRadius:16,padding:'14px 16px',marginBottom:10,
+                    cursor:'pointer',
+                    transition:'border-color .15s',
+                  }}
+                  onClick={()=>{
+                    // Restore this history entry as a pseudo-result via sessionStorage
+                    const pseudo = {
+                      confidence: h.confidence||75,
+                      status: h.problem,
+                      diagnosis: h.diagnosis||'',
+                      causes:[],steps:[],tools:[],partsNeeded:[],
+                      estimatedCost: h.estimatedCost||'',
+                      warningLevel:'low',safetyWarning:'',callPro:false,proReason:'',proTip:'',proSearchQuery:'',
+                      _fromHistory: true,
+                    };
+                    SS.set('aiResult', pseudo);
+                    SS.set('aiProblem', h.problem);
+                    problemRef.current = h.problem;
+                    setCurFix(h.category || 'home');
+                    setShowHistory(false);
+                    goto('result');
+                  }}>
+                    <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
+                      <div style={{
+                        width:38,height:38,borderRadius:10,flexShrink:0,
+                        background:'rgba(255,255,255,0.06)',
+                        display:'flex',alignItems:'center',justifyContent:'center',
+                        fontSize:'1.1rem',
+                      }}>{CAT_IC[h.category]||'🔧'}</div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{
+                          fontSize:'0.85rem',fontWeight:700,
+                          color:'#F0EDE8',marginBottom:3,
+                          overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',
+                        }}>{h.problem}</div>
+                        {h.diagnosis && <div style={{
+                          fontSize:'0.72rem',color:'rgba(255,255,255,0.38)',
+                          lineHeight:1.5,marginBottom:8,
+                          display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden',
+                        }}>{h.diagnosis}</div>}
+                        <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+                          <span style={{
+                            fontSize:'0.6rem',fontWeight:700,
+                            color:h.confidence>79?'rgba(26,158,92,0.9)':h.confidence>59?'rgba(232,178,26,0.9)':'rgba(214,59,47,0.7)',
+                            background:h.confidence>79?'rgba(26,158,92,0.12)':h.confidence>59?'rgba(232,178,26,0.1)':'rgba(214,59,47,0.1)',
+                            border:`1px solid ${h.confidence>79?'rgba(26,158,92,0.2)':h.confidence>59?'rgba(232,178,26,0.2)':'rgba(214,59,47,0.15)'}`,
+                            borderRadius:6,padding:'2px 7px',
+                          }}>{h.confidence||'—'}%</span>
+                          <span style={{fontSize:'0.62rem',color:'rgba(255,255,255,0.22)'}}>{fmtDate(h.date)}</span>
+                          {h.fixed===true && <span style={{fontSize:'0.6rem',color:'rgba(26,158,92,0.8)'}}>✓ {lang==='de'?'Behoben':'Fixed'}</span>}
+                          {h.fixed===false && <span style={{fontSize:'0.6rem',color:'rgba(214,59,47,0.7)'}}>✗ {lang==='de'?'Nicht behoben':'Not fixed'}</span>}
+                          <span style={{
+                            marginLeft:'auto',fontSize:'0.6rem',fontWeight:700,
+                            color:'rgba(232,82,26,0.8)',
+                          }}>{lang==='de'?'Erneut öffnen →':lang==='tr'?'Yeniden aç →':lang==='pl'?'Otwórz ponownie →':'Open again →'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {/* Savings summary */}
+                {totalSaved > 0 && (
+                  <div style={{
+                    background:'rgba(26,158,92,0.06)',border:'1px solid rgba(26,158,92,0.14)',
+                    borderRadius:14,padding:'14px 16px',marginBottom:10,
+                    display:'flex',alignItems:'center',gap:14,
+                  }}>
+                    <div style={{fontSize:'1.8rem'}}>💰</div>
+                    <div>
+                      <div style={{fontSize:'1.3rem',fontWeight:900,color:'rgba(26,158,92,0.9)'}}>ca. €{totalSaved}</div>
+                      <div style={{fontSize:'0.62rem',color:'rgba(255,255,255,0.25)',lineHeight:1.5,marginTop:2}}>
+                        {lang==='de'?'Mögliches Sparpotenzial mit FixIt':lang==='tr'?'FixIt ile tahmini tasarruf':lang==='pl'?'Potencjalne oszczędności z FixIt':'Est. savings with FixIt'}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {/* Clear */}
+                <button onClick={(e)=>{e.stopPropagation();setHistory([]);LS.set('history',[]);setTotalSaved(0);LS.set('totalSaved',0);}} style={{
+                  width:'100%',background:'none',border:'1px solid rgba(255,255,255,0.07)',
+                  borderRadius:12,padding:'11px',color:'rgba(255,255,255,0.25)',
+                  fontSize:'0.72rem',fontWeight:600,cursor:'pointer',fontFamily:'inherit',
+                  marginBottom:8,
+                }}>
+                  {lang==='de'?'Verlauf löschen':lang==='tr'?'Geçmişi temizle':lang==='pl'?'Wyczyść historię':'Clear history'}
+                </button>
+              </div>
             </div>
           </div>
-        )}
+          );
+        })()}
         {/* Emergency banner */}
         <div onClick={()=>goto('emergency')} style={{background:'linear-gradient(135deg,#2A0000,#1A0000)',border:'1px solid rgba(214,59,47,0.3)',borderRadius:18,padding:16,display:'flex',alignItems:'center',gap:14,marginBottom:22,cursor:'pointer',animation:'fadeIn .4s ease'}}>
           <span style={{width:8,height:8,background:C.r,borderRadius:'50%',flexShrink:0,animation:'blink 1.2s infinite'}}/>
@@ -1172,7 +1305,9 @@ export default function App() {
 
   // ── RESULT ───────────────────────────────────────────────────────────────────
   if (screen === 'result') {
-    const r   = aiResult;
+    // When reopening a history entry, aiResult (from useAI hook) may be null.
+    // Fall back to SS.get('aiResult') which was written by the history drawer.
+    const r   = aiResult || SS.get('aiResult');
     const pct = r?.confidence||0;
     const col = r?.callPro?C.r:pct<60?C.y:C.g;
     const ci  = 170, off = ci-(ci*pct/100);
