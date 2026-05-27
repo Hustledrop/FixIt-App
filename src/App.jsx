@@ -1616,7 +1616,7 @@ export default function App() {
             ) : (
               <div style={{display:'flex',gap:10}}>
                 <button onClick={()=>{
-                  const cat = curFix==='car'?'car':curFix==='tech'?'tech':curFix==='appliances'?'appliances':curFix==='garden'?'garden':curFix==='pets'?'pets':'home';
+                  const cat = curFix==='car'?'car':curFix==='moto'?'moto':curFix==='tech'?'tech':curFix==='appliances'?'appliances':curFix==='garden'?'garden':curFix==='bike'?'bike':curFix==='pets'?'pets':'home';
                   setVType(cat);
                   // Build query from CURRENT diagnosis — never reuse old parts search
                   const detectedVehicle = r._vehicleCtx;
@@ -1628,7 +1628,7 @@ export default function App() {
                   setPInput(diagQuery);
                   setVInput(vehicleLabel); // populate vehicle field with detected vehicle
                   setHsnModel('');
-                  setVType('car');
+                  // Keep cat as the correct type — do NOT override with 'car'
                   // Pre-populate pResults so parts are immediately visible
                   const fullSearchQ = diagQuery; // vehicle already in diagQuery via ensureVehicle
                   setPResults({ q: diagQuery, vehicle: vehicleLabel, hsnModel: '', searchQ: fullSearchQ, isHSN: false, category: cat, fromDiagnosis: true, vehicleCtx: detectedVehicle });
@@ -1934,7 +1934,8 @@ export default function App() {
         <div style={{padding:'52px 20px 14px',borderBottom:`1px solid ${C.b}`,flexShrink:0}}>
           <BackBtn/>
           <div style={{fontSize:'1.35rem',fontWeight:800,letterSpacing:'-0.02em',marginBottom:4}}>
-            {vType==='car'   ?(lang==='de'?'Auto-Teile finden':lang==='tr'?'Araba Parçası Bul':lang==='pl'?'Znajdź części do auta':'Find Auto Parts'):
+            {vType==='moto'  ?(lang==='de'?'Motorrad-Teile finden':lang==='tr'?'Motosiklet Parçası Bul':lang==='pl'?'Znajdź części do motocykla':lang==='fr'?'Trouver des pièces moto':lang==='it'?'Trova ricambi moto':lang==='es'?'Buscar repuestos moto':'Find Motorcycle Parts'):
+             vType==='car'   ?(lang==='de'?'Auto-Teile finden':lang==='tr'?'Araba Parçası Bul':lang==='pl'?'Znajdź części do auta':'Find Auto Parts'):
              vType==='bike'  ?(lang==='de'?'Fahrrad-Teile finden':lang==='tr'?'Bisiklet Parçası Bul':lang==='pl'?'Znajdź części do roweru':'Find Bike Parts'):
              vType==='tech'  ?(lang==='de'?'Elektronik & Zubehör':lang==='tr'?'Elektronik & Aksesuar':lang==='pl'?'Elektronika & Akcesoria':'Electronics & Parts'):
              vType==='appliances'?(lang==='de'?'Geräte-Ersatzteile':lang==='tr'?'Cihaz Yedek Parçaları':lang==='pl'?'Części do AGD':'Appliance Parts'):
@@ -1948,7 +1949,7 @@ export default function App() {
           <div style={s.card}>
             <div style={{fontSize:'0.68rem',fontWeight:700,color:C.m,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:8}}>{t('searchingFor')}</div>
             <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:10}}>
-              {[['car',t('catCar')],['home',t('catHome')],['appliances',t('catAppliance')],['garden',t('catGarden')],['tech',t('catTech')],['bike',t('catBike')],['pets',t('catPets')]].map(([tp,lb])=>(
+              {[['car',t('catCar')],['moto',t('motorcycle')],['home',t('catHome')],['appliances',t('catAppliance')],['garden',t('catGarden')],['tech',t('catTech')],['bike',t('catBike')],['pets',t('catPets')]].map(([tp,lb])=>(
                 <button key={tp} onClick={()=>{setVType(tp);setVInput('');setHsnModel('');}} style={{padding:'7px 14px',borderRadius:100,fontSize:'0.76rem',fontWeight:600,cursor:'pointer',border:'none',background:vType===tp?C.bl:'rgba(255,255,255,0.06)',color:vType===tp?'#fff':C.m,fontFamily:'inherit'}}>{lb}</button>
               ))}
             </div>
