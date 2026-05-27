@@ -23,6 +23,7 @@ const TYRES_BBOX_EW = 0.07;  // proportional reduction
 // This is an Overpass regex, not JS regex — uses ERE syntax
 const TYRE_NAME_REGEX  = 'Reifen|Tyre|Tire|Vulkan|Felgen|Rader|Wheels|Wheel';
 const PARTS_NAME_REGEX = 'Autoteile|KFZ.Teile|Kfz.Teile|Ersatzteil|Autozubeh|Zubeh|Teile';
+const MOTO_NAME_REGEX  = 'Motorrad|Motorbike|Motorcycle|Scooter|Roller|Zweirad|Moped';
 
 function buildQuery(cat, latN, lngN) {
   // Tyres gets a larger search area
@@ -117,6 +118,27 @@ function buildQuery(cat, latN, lngN) {
       `way["craft"="electronics_repair"](${b})`,
       `node["shop"="mobile_phone"](${b})`,
     ],
+
+    // ── MOTO — motorcycle, scooter, moped, two-wheel workshops ───────────────
+    // Pass A: exact motorcycle shop/craft tags — keep all results
+    // Pass B: car_repair with moto-related name — filtered by Overpass ERE
+    moto: [
+      // Pass A: exact motorcycle tags
+      `node["shop"="motorcycle"](${b})`,
+      `way["shop"="motorcycle"](${b})`,
+      `relation["shop"="motorcycle"](${b})`,
+      `node["craft"="motorcycle_repair"](${b})`,
+      `way["craft"="motorcycle_repair"](${b})`,
+      `node["service:vehicle:motorcycle"="yes"](${b})`,
+      `way["service:vehicle:motorcycle"="yes"](${b})`,
+      `node["shop"="scooter"](${b})`,
+      `way["shop"="scooter"](${b})`,
+      // Pass B: car_repair/vehicle shops with motorcycle-related name
+      `node["shop"="car_repair"]["name"~"${MOTO_NAME_REGEX}",i](${b})`,
+      `way["shop"="car_repair"]["name"~"${MOTO_NAME_REGEX}",i](${b})`,
+      `node["shop"="vehicle"]["name"~"${MOTO_NAME_REGEX}",i](${b})`,
+      `way["shop"="vehicle"]["name"~"${MOTO_NAME_REGEX}",i](${b})`,
+    ],
   };
 
   const lines = (parts[cat] || parts.garage).join(';\n  ');
@@ -128,6 +150,20 @@ const TYRE_KEYWORDS = /reifen|tyre|tire|vulkan|felgen|räder|rader|wheel/i;
 
 // Server-side parts keyword filter — mirrors PARTS_NAME_REGEX but with JS regex (supports umlauts)
 const PARTS_KEYWORDS = /autoteile|kfz.?teile|ersatzteil|autozubeh|zubehör|zubeh/i;
+
+// Server-side motorcycle keyword filter
+const MOTO_KEYWORDS = /motorrad|motorbike|motorcycle|scooter|roller|zweirad|moto|moped/i;
+
+function isMotoRelevant(el) {
+  const tags = el.tags || {};
+  // Exact motorcycle tags → always relevant (Pass A)
+  if (['motorcycle','scooter'].includes(tags.shop)) return true;
+  if (tags.craft === 'motorcycle_repair') return true;
+  if (tags['service:vehicle:motorcycle'] === 'yes') return true;
+  // Broad tags — only if name/operator/brand mentions motorcycle keywords (Pass B)
+  const searchFields = [tags.name, tags.brand, tags.operator, tags.description].filter(Boolean).join(' ');
+  return MOTO_KEYWORDS.test(searchFields);
+}
 
 function isPartsRelevant(el) {
   const tags = el.tags || {};
@@ -278,6 +314,7 @@ module.exports = async function handler(req, res) {
     // Server-side relevance filters (belt-and-suspenders after Overpass name~ filter)
     if (cat === 'tyres' && !isTyreRelevant(el)) { filteredOut++; return; }
     if (cat === 'parts' && !isPartsRelevant(el)) { filteredOut++; return; }
+    if (cat === 'moto'  && !isMotoRelevant(el))  { filteredOut++; return; }
 
     if (seen[el.tags.name]) return;
     seen[el.tags.name] = true;
@@ -309,7 +346,7 @@ module.exports = async function handler(req, res) {
   const results = out.slice(0, 25);
 
   // Category debug logs
-  if (cat === 'tyres' || cat === 'parts') {
+  if (cat === 'tyres' || cat === 'parts' || cat === 'moto') {
     const fallbackUsed = results.length === 0;
     const tag = cat === 'tyres' ? 'TYRES_DEBUG' : 'PARTS_DEBUG';
     console.log(

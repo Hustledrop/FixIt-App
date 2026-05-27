@@ -504,6 +504,7 @@ module.exports = async function handler(req, res) {
       `Write ALL visible text in ${lang2}. Exception: imageQuery must be English keywords only (for image search).`,
 
       `Be specific and expert, but concise. Name the exact component and real tool names. Diagnosis max 2 short sentences. Max 4 causes. Max 4 steps. Each step description max 2 short sentences. Each tip max 1 short sentence. Avoid advanced technician-only explanations unless absolutely necessary. Keep JSON compact and valid.`,
+      `LOCATION UNCERTAINTY RULE: For components whose location varies by model year, engine, trim, or market (cabin filter, fuse box, relays, battery, sensors, access panels, hidden compartments): do NOT state one definitive location as absolute fact. Instead: give the most likely location first, then mention alternative positions briefly, use hedging language (usually / typically / often / depending on variant / check first). If the user has not provided year/engine/trim and the location genuinely varies, acknowledge this. Never invent certainty you do not have.`,
 
       // ── VISION ANALYSIS RULES — only active when user uploads a photo ──────
       ...(hasImage ? [

@@ -8,6 +8,7 @@ export const MAP_CATS = {
   hardware: { icon:'🏗️' },
   vet:      { icon:'🐾' },
   it:       { icon:'💻' },
+  moto:     { icon:'🏍️' },
 };
 
 // Module-level cache — persists across re-renders, resets on full page reload

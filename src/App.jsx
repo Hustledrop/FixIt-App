@@ -1269,7 +1269,7 @@ export default function App() {
         </div>
         <div style={{fontSize:'0.68rem',fontWeight:700,color:C.m,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:12}}>{t('whatNeedsFixing')}</div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:22}}>
-          {[['🏠',t('homeRepair'),'home',true],['🚗',t('carProblems'),'car',false],['📱',t('techDevices'),'tech',false],['🌿',t('garden'),'garden',false],['🍳',t('appliances'),'appliances',false],['🐾',t('petHealth'),'pets',false]].map(([em,nm,cat,hi],i)=>(
+          {[['🏠',t('homeRepair'),'home',true],['🚗',t('carProblems'),'car',false],['🏍️',t('motorcycle'),'moto',false],['📱',t('techDevices'),'tech',false],['🌿',t('garden'),'garden',false],['🍳',t('appliances'),'appliances',false],['🐾',t('petHealth'),'pets',false]].map(([em,nm,cat,hi],i)=>(
             <div key={cat} onClick={()=>openFix(cat)} style={{background:hi?'rgba(232,82,26,0.07)':C.c,border:`1px solid ${hi?'rgba(232,82,26,0.35)':C.b}`,borderRadius:18,padding:16,cursor:'pointer',animation:`fadeIn ${.3+i*.07}s ease`}}>
               <span style={{fontSize:'1.8rem',marginBottom:8,display:'block'}}>{em}</span>
               <div style={{fontSize:'0.85rem',fontWeight:700,marginBottom:3}}>{nm}</div>
@@ -1769,7 +1769,7 @@ export default function App() {
 
   // ── NEARBY ───────────────────────────────────────────────────────────────────
   if (screen === 'nearby') {
-    const catLabels={garage:t('catGarage'),parts:t('catParts'),tyres:t('catTyres'),petrol:t('catPetrol'),hardware:t('catHardware'),vet:t('catVet'),it:t('catIT')};
+    const catLabels={garage:t('catGarage'),parts:t('catParts'),tyres:t('catTyres'),petrol:t('catPetrol'),hardware:t('catHardware'),vet:t('catVet'),it:t('catIT'),moto:t('motorcycle')};
     // Category-specific Google Maps search terms (correct service type, not product)
     // catMapsQ: short, intent-friendly local service search terms per language
     const _isDE = lang === 'de', _isTR = lang === 'tr',
@@ -1784,6 +1784,7 @@ export default function App() {
       hardware: _isDE?'Baumarkt in der Nähe':_isTR?'Hırdavatçı yakınımda':_isHR?'Željezarija u blizini':_isMK?'Железарија во близина':'hardware store near me',
       vet:      _isDE?'Tierarzt in der Nähe':_isTR?'Veteriner yakınımda':_isHR?'Veterinar u blizini':_isMK?'Ветеринар во близина':'veterinarian near me',
       it:       _isDE?'Computer Reparatur in der Nähe':_isTR?'Bilgisayar tamiri yakınımda':_isHR?'Servis računala u blizini':_isMK?'Сервис компјутери во близина':'computer repair near me',
+      moto:     _isDE?'Motorradwerkstatt in der Nähe':_isTR?'Motosiklet servisi yakınımda':_isHR?'Servis motocikla u blizini':_isMK?'Сервис за мотор во близина':_isFR?'Garage moto près de moi':_isES?'Taller motos cerca de mí':_isIT?'Officina moto vicino':'motorcycle repair near me',
     };
     return (
       <Screen>

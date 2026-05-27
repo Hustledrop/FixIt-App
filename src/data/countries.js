@@ -248,6 +248,35 @@ const STORES = {
       {n:"Google Shopping 🔍",u:(q)=>`https://www.google.com/search?q=${encodeURIComponent(q)}&tbm=shop`},
     ],
   },
+  moto: {
+    // Motorcycle/scooter/moped — uses Autodoc for parts + Louis (largest EU motorcycle retailer)
+    DE:[
+      {n:"Louis 🏍️",u:(q)=>`https://www.louis.de/search?q=${encodeURIComponent(q)}`,badge:"TOP"},
+      {n:"Autodoc.de 🚗",u:(q)=>`https://www.autodoc.de/search?keyword=${encodeURIComponent(q)}`},
+      {n:"Polo Motorrad 🏪",u:(q)=>`https://www.polo-motorrad.de/search?q=${encodeURIComponent(q)}`},
+      {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
+      {n:"eBay.de 🛒",u:(q)=>`https://www.ebay.de/sch/i.html?_nkw=${encodeURIComponent(q)}&_sacat=0`},
+    ],
+    AT:[
+      {n:"Louis 🏍️",u:(q)=>`https://www.louis.de/search?q=${encodeURIComponent(q)}`,badge:"TOP"},
+      {n:"Autodoc.at 🚗",u:(q)=>`https://www.autodoc.at/search?keyword=${encodeURIComponent(q)}`},
+      {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
+    ],
+    CH:[
+      {n:"Autodoc.ch 🚗",u:(q)=>`https://www.autodoc.ch/search?keyword=${encodeURIComponent(q)}`,badge:"BEST"},
+      {n:"Louis 🏍️",u:(q)=>`https://www.louis.de/search?q=${encodeURIComponent(q)}`},
+      {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
+    ],
+    GB:[
+      {n:"Fowlers Parts 🏍️",u:(q)=>`https://www.fowlersparts.co.uk/search?q=${encodeURIComponent(q)}`,badge:"TOP"},
+      {n:"Autodoc.co.uk 🚗",u:(q)=>`https://www.autodoc.co.uk/search?keyword=${encodeURIComponent(q)}`},
+      {n:"Amazon.co.uk 📦",u:(q)=>`https://www.amazon.co.uk/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
+    ],
+    DEFAULT:[
+      {n:"Amazon 📦",u:(q)=>`https://www.amazon.com/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
+      {n:"eBay 🛒",u:(q)=>`https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(q)}&_sacat=0`},
+    ],
+  },
   pets: {
     DE:[
       {n:"Zooplus 🐾",u:(q)=>`https://www.zooplus.de/shop/search?text=${encodeURIComponent(q)}`},
@@ -303,6 +332,7 @@ export function getStores(category, cc) {
 // Local store search terms per category — used to open Google Maps nearby search
 export const LOCAL_STORE_SEARCH = {
   car:        { de:'Autoteile KFZ Teile',            en:'auto parts store' },
+  moto:       { de:'Motorrad Ersatzteile Händler',   en:'motorcycle parts shop' },
   bike:       { de:'Fahrradladen Fahrradgeschäft',   en:'bike shop bicycle store' },
   tech:       { de:'Elektronik Reparatur Handy',      en:'electronics repair phone shop' },
   appliances: { de:'Haushaltsgeräte Reparatur',       en:'appliance repair shop' },

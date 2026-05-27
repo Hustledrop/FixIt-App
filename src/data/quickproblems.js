@@ -6,6 +6,7 @@ const QP = {
     garden:[{e:"🌿",t:"Plants dying or yellowing"},{e:"🐛",t:"Pest infestation"},{e:"💧",t:"Garden not draining"},{e:"🌿",t:"Lawn patchy or dead"},{e:"🌳",t:"Tree branch falling risk"},{e:"🔧",t:"Garden tool broken"}],
     appliances:[{e:"🫧",t:"Washing machine not spinning"},{e:"🍳",t:"Oven not heating"},{e:"❄️",t:"Fridge not cooling"},{e:"🍽️",t:"Dishwasher not cleaning"},{e:"👕",t:"Tumble dryer not drying"},{e:"🌬️",t:"Microwave sparking"}],
     pets:[{e:"🤒",t:"Pet not eating or lethargic"},{e:"🤢",t:"Pet vomiting or diarrhea"},{e:"😰",t:"Breathing difficulty"},{e:"🩸",t:"Bleeding or injured"},{e:"🐾",t:"Limping or in pain"},{e:"🦟",t:"Fleas or parasites"}],
+    moto:[{e:"🏍️",t:"Motorcycle won't start"},{e:"🔋",t:"Battery dead"},{e:"⛓️",t:"Chain / Kette"},{e:"🛑",t:"Brakes squeaking"},{e:"💧",t:"Oil leak"},{e:"💨",t:"Engine overheating"}],
   },
   de:{
     home:[{e:"🚿",t:"Tropfender Wasserhahn"},{e:"🚽",t:"Toilette läuft ständig"},{e:"🔌",t:"Steckdose funktioniert nicht"},{e:"🚪",t:"Tür schließt nicht richtig"},{e:"❄️",t:"Heizung oder Klimaanlage defekt"},{e:"💧",t:"Wasser läuft nicht ab"}],
@@ -14,6 +15,7 @@ const QP = {
     garden:[{e:"🌿",t:"Pflanzen sterben oder vergilben"},{e:"🐛",t:"Schädlinge oder Insekten"},{e:"💧",t:"Garten entwässert nicht"},{e:"🌿",t:"Rasen lückenhaft oder tot"},{e:"🌳",t:"Baum oder Ast sturzgefährdet"},{e:"🔧",t:"Gartengerät defekt"}],
     appliances:[{e:"🫧",t:"Waschmaschine schleudert nicht"},{e:"🍳",t:"Ofen heizt nicht"},{e:"❄️",t:"Kühlschrank kühlt nicht"},{e:"🍽️",t:"Spülmaschine reinigt nicht"},{e:"👕",t:"Wäschetrockner trocknet nicht"},{e:"🌬️",t:"Mikrowelle funkt"}],
     pets:[{e:"🤒",t:"Tier frisst nicht oder ist müde"},{e:"🤢",t:"Tier erbricht oder hat Durchfall"},{e:"😰",t:"Atemprobleme"},{e:"🩸",t:"Blutet oder ist verletzt"},{e:"🐾",t:"Hinkt oder hat Schmerzen"},{e:"🦟",t:"Flöhe oder Parasiten"}],
+    moto:[{e:"🏍️",t:"Motorcycle won't start"},{e:"🔋",t:"Battery dead"},{e:"⛓️",t:"Chain / Kette"},{e:"🛑",t:"Brakes squeaking"},{e:"💧",t:"Oil leak"},{e:"💨",t:"Engine overheating"}],
   },
   fr:{
     home:[{e:"🚿",t:"Robinet qui fuit"},{e:"🚽",t:"Toilette qui coule"},{e:"🔌",t:"Prise ne fonctionne pas"},{e:"🚪",t:"Porte qui ferme mal"},{e:"❄️",t:"Chauffage ou clim en panne"},{e:"💧",t:"Eau qui ne s'écoule pas"}],
@@ -22,6 +24,7 @@ const QP = {
     garden:[{e:"🌿",t:"Plantes qui meurent"},{e:"🐛",t:"Infestation de parasites"},{e:"💧",t:"Jardin qui ne draine pas"},{e:"🌿",t:"Pelouse abîmée"},{e:"🌳",t:"Risque de chute d'arbre"},{e:"🔧",t:"Outil de jardin cassé"}],
     appliances:[{e:"🫧",t:"Machine à laver ne tourne pas"},{e:"🍳",t:"Four ne chauffe pas"},{e:"❄️",t:"Frigo ne refroidit pas"},{e:"🍽️",t:"Lave-vaisselle ne nettoie pas"},{e:"👕",t:"Sèche-linge ne sèche pas"},{e:"🌬️",t:"Micro-ondes fait des étincelles"}],
     pets:[{e:"🤒",t:"Animal ne mange pas"},{e:"🤢",t:"Vomissements ou diarrhée"},{e:"😰",t:"Difficulté à respirer"},{e:"🩸",t:"Blessure ou saignement"},{e:"🐾",t:"Boiterie ou douleur"},{e:"🦟",t:"Puces ou parasites"}],
+    moto:[{e:"🏍️",t:"Motorcycle won't start"},{e:"🔋",t:"Battery dead"},{e:"⛓️",t:"Chain / Kette"},{e:"🛑",t:"Brakes squeaking"},{e:"💧",t:"Oil leak"},{e:"💨",t:"Engine overheating"}],
   },
   es:{
     home:[{e:"🚿",t:"Grifo que gotea"},{e:"🚽",t:"WC que no para"},{e:"🔌",t:"Enchufe que no funciona"},{e:"🚪",t:"Puerta que no cierra bien"},{e:"❄️",t:"Calefacción o aire averiado"},{e:"💧",t:"Agua que no drena"}],
@@ -30,6 +33,7 @@ const QP = {
     garden:[{e:"🌿",t:"Plantas que mueren"},{e:"🐛",t:"Infestación de plagas"},{e:"💧",t:"Jardín que no drena"},{e:"🌿",t:"Césped en mal estado"},{e:"🌳",t:"Riesgo de caída de árbol"},{e:"🔧",t:"Herramienta de jardín rota"}],
     appliances:[{e:"🫧",t:"Lavadora que no centrifuga"},{e:"🍳",t:"Horno que no calienta"},{e:"❄️",t:"Nevera que no enfría"},{e:"🍽️",t:"Lavavajillas que no limpia"},{e:"👕",t:"Secadora que no seca"},{e:"🌬️",t:"Microondas que hace chispas"}],
     pets:[{e:"🤒",t:"Mascota que no come"},{e:"🤢",t:"Vómitos o diarrea"},{e:"😰",t:"Dificultad para respirar"},{e:"🩸",t:"Herida o sangrado"},{e:"🐾",t:"Cojera o dolor"},{e:"🦟",t:"Pulgas o parásitos"}],
+    moto:[{e:"🏍️",t:"Motorcycle won't start"},{e:"🔋",t:"Battery dead"},{e:"⛓️",t:"Chain / Kette"},{e:"🛑",t:"Brakes squeaking"},{e:"💧",t:"Oil leak"},{e:"💨",t:"Engine overheating"}],
   },
   it:{
     home:[{e:"🚿",t:"Rubinetto che perde"},{e:"🚽",t:"WC che non smette di scorrere"},{e:"🔌",t:"Presa che non funziona"},{e:"🚪",t:"Porta che non chiude bene"},{e:"❄️",t:"Riscaldamento o clima in avaria"},{e:"💧",t:"Acqua che non defluisce"}],
@@ -38,6 +42,7 @@ const QP = {
     garden:[{e:"🌿",t:"Piante che muoiono"},{e:"🐛",t:"Infestazione di parassiti"},{e:"💧",t:"Giardino che non drena"},{e:"🌿",t:"Prato rovinato"},{e:"🌳",t:"Rischio caduta rami"},{e:"🔧",t:"Attrezzo da giardino rotto"}],
     appliances:[{e:"🫧",t:"Lavatrice non centrifuga"},{e:"🍳",t:"Forno non scalda"},{e:"❄️",t:"Frigo non raffredda"},{e:"🍽️",t:"Lavastoviglie non pulisce"},{e:"👕",t:"Asciugatrice non asciuga"},{e:"🌬️",t:"Microonde fa scintille"}],
     pets:[{e:"🤒",t:"Animale non mangia"},{e:"🤢",t:"Vomito o diarrea"},{e:"😰",t:"Difficoltà respiratorie"},{e:"🩸",t:"Ferita o sanguinamento"},{e:"🐾",t:"Zoppia o dolore"},{e:"🦟",t:"Pulci o parassiti"}],
+    moto:[{e:"🏍️",t:"Motorcycle won't start"},{e:"🔋",t:"Battery dead"},{e:"⛓️",t:"Chain / Kette"},{e:"🛑",t:"Brakes squeaking"},{e:"💧",t:"Oil leak"},{e:"💨",t:"Engine overheating"}],
   },
   pl:{
     home:[{e:"🚿",t:"Cieknący kran"},{e:"🚽",t:"Toaleta ciągle spływa"},{e:"🔌",t:"Gniazdko nie działa"},{e:"🚪",t:"Drzwi nie zamykają się"},{e:"❄️",t:"Ogrzewanie lub klimatyzacja zepsuta"},{e:"💧",t:"Woda nie odpływa"}],
@@ -46,6 +51,7 @@ const QP = {
     garden:[{e:"🌿",t:"Rośliny umierają"},{e:"🐛",t:"Inwazja szkodników"},{e:"💧",t:"Ogród nie odprowadza wody"},{e:"🌿",t:"Trawnik przetrzebiony"},{e:"🌳",t:"Ryzyko upadku gałęzi"},{e:"🔧",t:"Narzędzie ogrodowe zepsute"}],
     appliances:[{e:"🫧",t:"Pralka nie wiruje"},{e:"🍳",t:"Piekarnik nie grzeje"},{e:"❄️",t:"Lodówka nie chłodzi"},{e:"🍽️",t:"Zmywarka nie myje"},{e:"👕",t:"Suszarka nie suszy"},{e:"🌬️",t:"Mikrofalówka iskrzy"}],
     pets:[{e:"🤒",t:"Zwierzę nie je"},{e:"🤢",t:"Wymioty lub biegunka"},{e:"😰",t:"Trudności z oddychaniem"},{e:"🩸",t:"Krwawienie lub uraz"},{e:"🐾",t:"Kulawieje lub jest w bólu"},{e:"🦟",t:"Pchły lub pasożyty"}],
+    moto:[{e:"🏍️",t:"Motorcycle won't start"},{e:"🔋",t:"Battery dead"},{e:"⛓️",t:"Chain / Kette"},{e:"🛑",t:"Brakes squeaking"},{e:"💧",t:"Oil leak"},{e:"💨",t:"Engine overheating"}],
   },
   sr:{
     home:[{e:"🚿",t:"Slavina curi"},{e:"🚽",t:"WC ne prestaje da teče"},{e:"🔌",t:"Utičnica ne radi"},{e:"🚪",t:"Vrata se ne zatvaraju"},{e:"❄️",t:"Grejanje ili klima ne rade"},{e:"💧",t:"Voda ne otiče"}],
@@ -54,6 +60,7 @@ const QP = {
     garden:[{e:"🌿",t:"Biljke umiru ili žute"},{e:"🐛",t:"Štetočine ili insekti"},{e:"💧",t:"Vrt se ne oceduje"},{e:"🌿",t:"Travnjak proređen ili mrtav"},{e:"🌳",t:"Opasno drvo ili grana"},{e:"🔧",t:"Pokvareni alat za vrt"}],
     appliances:[{e:"🫧",t:"Veš mašina ne centrifugira"},{e:"🍳",t:"Rerna ne greje"},{e:"❄️",t:"Frižider ne hladi"},{e:"🍽️",t:"Mašina za pranje sudova ne pere"},{e:"👕",t:"Sušilica ne suši"},{e:"🌬️",t:"Mikrotalasna iskri"}],
     pets:[{e:"🤒",t:"Ljubimac ne jede ili je letargičan"},{e:"🤢",t:"Povraćanje ili proliv"},{e:"😰",t:"Teškoće sa disanjem"},{e:"🩸",t:"Krvarenje ili povreda"},{e:"🐾",t:"Hramanje ili bol"},{e:"🦟",t:"Buve ili paraziti"}],
+    moto:[{e:"🏍️",t:"Motorcycle won't start"},{e:"🔋",t:"Battery dead"},{e:"⛓️",t:"Chain / Kette"},{e:"🛑",t:"Brakes squeaking"},{e:"💧",t:"Oil leak"},{e:"💨",t:"Engine overheating"}],
   },
   hr:{
     home:[{e:"🚿",t:"Slavina curi"},{e:"🚽",t:"WC ne prestaje teći"},{e:"🔌",t:"Utičnica ne radi"},{e:"🚪",t:"Vrata se ne zatvaraju"},{e:"❄️",t:"Grijanje ili klima ne rade"},{e:"💧",t:"Voda ne otječe"}],
@@ -62,6 +69,7 @@ const QP = {
     garden:[{e:"🌿",t:"Biljke odumiru"},{e:"🐛",t:"Štetnici ili insekti"},{e:"💧",t:"Vrt se ne procjeduje"},{e:"🌿",t:"Travnjak oštećen"},{e:"🌳",t:"Opasno drvo ili grana"},{e:"🔧",t:"Alat za vrt pokvaren"}],
     appliances:[{e:"🫧",t:"Perilica rublja ne centrifugira"},{e:"🍳",t:"Pećnica ne grije"},{e:"❄️",t:"Hladnjak ne hladi"},{e:"🍽️",t:"Perilica suđa ne pere"},{e:"👕",t:"Sušilica ne suši"},{e:"🌬️",t:"Mikrovalna iskri"}],
     pets:[{e:"🤒",t:"Ljubimac ne jede"},{e:"🤢",t:"Povraćanje ili proljev"},{e:"😰",t:"Teškoće s disanjem"},{e:"🩸",t:"Krvarenje ili ozljeda"},{e:"🐾",t:"Šepanje ili bol"},{e:"🦟",t:"Buhe ili paraziti"}],
+    moto:[{e:"🏍️",t:"Motorcycle won't start"},{e:"🔋",t:"Battery dead"},{e:"⛓️",t:"Chain / Kette"},{e:"🛑",t:"Brakes squeaking"},{e:"💧",t:"Oil leak"},{e:"💨",t:"Engine overheating"}],
   },
   mk:{
     home:[{e:"🚿",t:"Чешма цури"},{e:"🚽",t:"WC не престанува да тече"},{e:"🔌",t:"Утичница не работи"},{e:"🚪",t:"Врата не се затвора"},{e:"❄️",t:"Греење или клима не работат"},{e:"💧",t:"Вода не оттекува"}],
@@ -70,6 +78,7 @@ const QP = {
     garden:[{e:"🌿",t:"Растенија умираат"},{e:"🐛",t:"Штетници или инсекти"},{e:"💧",t:"Градина не се одводнува"},{e:"🌿",t:"Трева проретчена"},{e:"🌳",t:"Опасно дрво или гранка"},{e:"🔧",t:"Алат за градина расипан"}],
     appliances:[{e:"🫧",t:"Машина за перење не центрифугира"},{e:"🍳",t:"Фурна не грее"},{e:"❄️",t:"Фрижидер не лади"},{e:"🍽️",t:"Машина за садови не пере"},{e:"👕",t:"Сушилница не суши"},{e:"🌬️",t:"Микробранова искри"}],
     pets:[{e:"🤒",t:"Миленик не јаде"},{e:"🤢",t:"Повраќање или пролив"},{e:"😰",t:"Тешкотии со дишење"},{e:"🩸",t:"Крварење или повреда"},{e:"🐾",t:"Куца или има болка"},{e:"🦟",t:"Буви или паразити"}],
+    moto:[{e:"🏍️",t:"Motorcycle won't start"},{e:"🔋",t:"Battery dead"},{e:"⛓️",t:"Chain / Kette"},{e:"🛑",t:"Brakes squeaking"},{e:"💧",t:"Oil leak"},{e:"💨",t:"Engine overheating"}],
   },
   tr:{
     home:[{e:"🚿",t:"Akan musluk"},{e:"🚽",t:"Sürekli akan tuvalet"},{e:"🔌",t:"Çalışmayan priz"},{e:"🚪",t:"Düzgün kapanmayan kapı"},{e:"❄️",t:"Isıtma veya klima arızası"},{e:"💧",t:"Su akmiyor"}],
@@ -78,6 +87,7 @@ const QP = {
     garden:[{e:"🌿",t:"Ölen veya sararan bitkiler"},{e:"🐛",t:"Zararlı istilası"},{e:"💧",t:"Bahçe drene olmuyor"},{e:"🌿",t:"Çim zayıf veya ölü"},{e:"🌳",t:"Düşen dal riski"},{e:"🔧",t:"Bahçe aleti bozuk"}],
     appliances:[{e:"🫧",t:"Çamaşır makinesi sıkmuyor"},{e:"🍳",t:"Fırın ısınmıyor"},{e:"❄️",t:"Buzdolabı soğutmuyor"},{e:"🍽️",t:"Bulaşık makinesi temizlemiyor"},{e:"👕",t:"Kurutma makinesi kurutmuyor"},{e:"🌬️",t:"Mikrodalga kıvılcım çıkarıyor"}],
     pets:[{e:"🤒",t:"Evcil hayvan yemiyor veya uyuşuk"},{e:"🤢",t:"Kusma veya ishal"},{e:"😰",t:"Nefes alma güçlüğü"},{e:"🩸",t:"Kanama veya yaralanma"},{e:"🐾",t:"Topallama veya ağrı"},{e:"🦟",t:"Pire veya parazit"}],
+    moto:[{e:"🏍️",t:"Motorcycle won't start"},{e:"🔋",t:"Battery dead"},{e:"⛓️",t:"Chain / Kette"},{e:"🛑",t:"Brakes squeaking"},{e:"💧",t:"Oil leak"},{e:"💨",t:"Engine overheating"}],
   },
 };
 
