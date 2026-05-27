@@ -531,7 +531,7 @@ module.exports = async function handler(req, res) {
         `partsNeeded REQUIRED: You MUST use EXACTLY this pre-computed list as your partsNeeded array (no changes, no additions, no OEM/part number codes): ${JSON.stringify(intelligentParts)}. These are vehicle-specific search suggestions generated from a fitment knowledge base. Copy them exactly into the partsNeeded field.`,
       ] : vehicleCtx ? [
         `DETECTED VEHICLE: ${[vehicleCtx.year, vehicleCtx.make, vehicleCtx.model, vehicleCtx.generation, vehicleCtx.engine].filter(Boolean).join(' ')}. Use this for vehicle-specific part search queries.`,
-        `partsNeeded: 2–4 SHORT vehicle-specific search terms. Include model/generation in each. Include 1 brand name (Brembo/Bosch/Varta/NGK/Mann). NEVER invent OEM/OE part numbers or codes (no Bosch 0250202132, no OEM reference numbers). No sentences. These are Amazon/Autodoc search suggestions only — not confirmed fitment.`,
+        `partsNeeded: 2–4 SHORT vehicle-specific search terms. Include model/generation in each for model-specific parts (brake pads, spark plug, battery, chain kit, filters). For universal consumables (chain spray, chain cleaner, brake cleaner, oil, tools, brushes, care products): use SHORT generic product names WITHOUT prepending the model — e.g. "Motorrad Kettenspray", "S100 Kettenreiniger", not "Suzuki GSXR Kettenspray 2006". Include 1 brand name. NEVER invent OEM part numbers. No sentences.`,
       ] : [
         `partsNeeded: 2–4 SHORT buyable search terms, 2–5 words each. GOOD: ["Geberit Spülkasten Dichtung","Universal WC Flapper 63mm"]. BAD: ["Ablaufventil passend zum Modell","Bosch OEM 0250202132"]. NEVER invent OEM/OE part numbers or codes. No sentences. No "passend für".`,
       ]),

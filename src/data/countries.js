@@ -251,16 +251,17 @@ const STORES = {
   moto: {
     // Motorcycle/scooter/moped — uses Autodoc for parts + Louis (largest EU motorcycle retailer)
     DE:[
-      {n:"Louis 🏍️",u:(q)=>`https://www.louis.de/search?q=${encodeURIComponent(q)}`,badge:"TOP"},
-      {n:"Autodoc.de 🚗",u:(q)=>`https://www.autodoc.de/search?keyword=${encodeURIComponent(q)}`},
+      {n:"Louis Motorrad 🏍️",u:(q)=>`https://www.louis.de/search?q=${encodeURIComponent(q)}`,badge:"TOP"},
       {n:"Polo Motorrad 🏪",u:(q)=>`https://www.polo-motorrad.de/search?q=${encodeURIComponent(q)}`},
       {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
       {n:"eBay.de 🛒",u:(q)=>`https://www.ebay.de/sch/i.html?_nkw=${encodeURIComponent(q)}&_sacat=0`},
+      {n:"Autodoc.de 🔧",u:(q)=>`https://www.autodoc.de/search?keyword=${encodeURIComponent(q)}`},
     ],
     AT:[
-      {n:"Louis 🏍️",u:(q)=>`https://www.louis.de/search?q=${encodeURIComponent(q)}`,badge:"TOP"},
-      {n:"Autodoc.at 🚗",u:(q)=>`https://www.autodoc.at/search?keyword=${encodeURIComponent(q)}`},
+      {n:"Louis Motorrad 🏍️",u:(q)=>`https://www.louis.de/search?q=${encodeURIComponent(q)}`,badge:"TOP"},
+      {n:"Polo Motorrad 🏪",u:(q)=>`https://www.polo-motorrad.de/search?q=${encodeURIComponent(q)}`},
       {n:"Amazon.de 📦",u:(q)=>`https://www.amazon.de/s?tag=fixitapp-20&k=${encodeURIComponent(q)}`},
+      {n:"Autodoc.at 🔧",u:(q)=>`https://www.autodoc.at/search?keyword=${encodeURIComponent(q)}`},
     ],
     CH:[
       {n:"Autodoc.ch 🚗",u:(q)=>`https://www.autodoc.ch/search?keyword=${encodeURIComponent(q)}`,badge:"BEST"},

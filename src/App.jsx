@@ -1273,7 +1273,16 @@ export default function App() {
             <div key={cat} onClick={()=>openFix(cat)} style={{background:hi?'rgba(232,82,26,0.07)':C.c,border:`1px solid ${hi?'rgba(232,82,26,0.35)':C.b}`,borderRadius:18,padding:16,cursor:'pointer',animation:`fadeIn ${.3+i*.07}s ease`}}>
               <span style={{fontSize:'1.8rem',marginBottom:8,display:'block'}}>{em}</span>
               <div style={{fontSize:'0.85rem',fontWeight:700,marginBottom:3}}>{nm}</div>
-              <div style={{fontSize:'0.7rem',color:C.m}}>{t('tapToFix')}</div>
+              <div style={{fontSize:'0.7rem',color:C.m}}>{
+                cat==='pets'      ? (lang==='de'?'Symptome analysieren →':lang==='fr'?'Analyser symptômes →':lang==='tr'?'Semptomları analiz et →':lang==='it'?'Analizza sintomi →':lang==='es'?'Analizar síntomas →':'Analyze symptoms →') :
+                cat==='moto'      ? (lang==='de'?'Motorrad prüfen →':lang==='fr'?'Vérifier moto →':lang==='tr'?'Motosiklet kontrol et →':lang==='it'?'Controlla moto →':lang==='es'?'Revisar moto →':'Inspect motorcycle →') :
+                cat==='car'       ? (lang==='de'?'Fahrzeug prüfen →':lang==='fr'?'Vérifier véhicule →':lang==='tr'?'Araç kontrol et →':lang==='it'?'Controlla veicolo →':lang==='es'?'Revisar vehículo →':'Inspect vehicle →') :
+                cat==='bike'      ? (lang==='de'?'Fahrrad prüfen →':lang==='fr'?'Vérifier vélo →':lang==='tr'?'Bisiklet kontrol et →':lang==='it'?'Controlla bici →':lang==='es'?'Revisar bici →':'Inspect bicycle →') :
+                cat==='garden'    ? (lang==='de'?'Problem erkennen →':lang==='fr'?'Identifier problème →':lang==='tr'?'Sorun tanımla →':lang==='it'?'Identifica problema →':lang==='es'?'Identificar problema →':'Identify issue →') :
+                cat==='appliances'? (lang==='de'?'Gerät diagnostizieren →':lang==='fr'?'Diagnostiquer appareil →':lang==='tr'?'Cihaz teşhis et →':lang==='it'?'Diagnostica dispositivo →':lang==='es'?'Diagnosticar dispositivo →':'Diagnose appliance →') :
+                cat==='tech'      ? (lang==='de'?'Fehler analysieren →':lang==='fr'?'Analyser panne →':lang==='tr'?'Hata analiz et →':lang==='it'?'Analizza il guasto →':lang==='es'?'Analizar fallo →':'Analyze fault →') :
+                /* home/default */  (lang==='de'?'Problem analysieren →':lang==='fr'?'Analyser le problème →':lang==='tr'?'Sorunu analiz et →':lang==='it'?'Analizza il problema →':lang==='es'?'Analizar problema →':'Analyze issue →')
+              }</div>
             </div>
           ))}
         </div>
@@ -1377,20 +1386,26 @@ export default function App() {
       // If still too long (>40 chars), use category default
       if (q.length > 40) {
         const defaults = {
-          car: isDE?'Autowerkstatt':'car repair shop',
-          bike: isDE?'Fahrradwerkstatt':'bike repair shop',
-          tech: isDE?'Elektronik Reparatur':'electronics repair',
+          car:        isDE?'Autowerkstatt':'car mechanic near me',
+          moto:       lang==='de'?'Motorradwerkstatt in der Nähe':lang==='fr'?'Garage moto':lang==='it'?'Officina moto':lang==='es'?'Taller motos':lang==='tr'?'Motosiklet servisi':'motorcycle repair near me',
+          bike:       isDE?'Fahrradwerkstatt':'bike repair shop',
+          tech:       isDE?'Elektronik Reparatur':'electronics repair',
           appliances: isDE?'Gerätereparatur':'appliance repair',
-          home: isDE?'Handwerker Klempner':'handyman plumber',
-          garden: isDE?'Gärtner Gartencenter':'garden center',
-          pets: isDE?'Tierarzt':'veterinarian',
+          home:       isDE?'Handwerker Klempner':'handyman plumber',
+          garden:     isDE?'Gärtner Gartencenter':'garden center',
+          pets:       isDE?'Tierarzt':'veterinarian',
         };
-        q = defaults[cat] || (isDE?'Fachmann':'repair service');
+        q = defaults[cat] || (isDE?'Handwerker':'repair service near me');
       }
       return q;
     }
     const isDE = lang === 'de';
-    const proQ = normalizeProSearch(r?.proSearchQuery, curFix, isDE)||`${curFix} repair service`;
+    const proQ = normalizeProSearch(r?.proSearchQuery, curFix, isDE) || (
+      curFix==='moto' ? (lang==='de'?'Motorradwerkstatt in der Nähe':'motorcycle repair near me') :
+      curFix==='car'  ? (lang==='de'?'Autowerkstatt':'car mechanic near me') :
+      curFix==='bike' ? (lang==='de'?'Fahrradwerkstatt':'bike repair shop') :
+      (lang==='de'?'Handwerker':'repair service near me')
+    );
     const ct  = catTerms(curFix, lang);  // category-aware terminology
 
 
